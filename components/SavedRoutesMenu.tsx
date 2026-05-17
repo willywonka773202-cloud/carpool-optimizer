@@ -60,7 +60,7 @@ export function SavedRoutesMenu({ onLoad }: { onLoad: (r: SavedRoute) => void })
         onClick={() => setOpen((o) => !o)}
         aria-label="Open saved routes"
         aria-expanded={open}
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-900/90 text-slate-100 shadow-lg ring-1 ring-white/10 backdrop-blur transition hover:bg-slate-800/90"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-900/90 text-slate-100 shadow-lg ring-1 ring-white/10 backdrop-blur transition hover:bg-slate-800/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
       >
         <MenuIcon className="h-5 w-5" aria-hidden="true" />
       </button>
@@ -77,7 +77,7 @@ export function SavedRoutesMenu({ onLoad }: { onLoad: (r: SavedRoute) => void })
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close saved routes"
-              className="rounded-md p-1 text-slate-400 hover:bg-white/5 hover:text-slate-100"
+              className="rounded-md p-1 text-slate-400 hover:bg-white/5 hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -115,7 +115,7 @@ export function SavedRoutesMenu({ onLoad }: { onLoad: (r: SavedRoute) => void })
                             type="button"
                             onClick={commitRename}
                             aria-label="Save name"
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-emerald-300 hover:bg-emerald-500/15"
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-emerald-300 hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                           >
                             <Check className="h-4 w-4" aria-hidden="true" />
                           </button>
@@ -123,7 +123,7 @@ export function SavedRoutesMenu({ onLoad }: { onLoad: (r: SavedRoute) => void })
                             type="button"
                             onClick={cancelRename}
                             aria-label="Cancel rename"
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-white/5"
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                           >
                             <X className="h-4 w-4" aria-hidden="true" />
                           </button>
@@ -135,7 +135,7 @@ export function SavedRoutesMenu({ onLoad }: { onLoad: (r: SavedRoute) => void })
                             onLoad(r);
                             setOpen(false);
                           }}
-                          className="block w-full rounded-md px-2 py-1 text-left transition hover:bg-white/5"
+                          className="block w-full rounded-md px-2 py-1 text-left transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                         >
                           <div className="flex items-center gap-2">
                             <span className="truncate text-sm font-semibold text-slate-100">
@@ -160,7 +160,7 @@ export function SavedRoutesMenu({ onLoad }: { onLoad: (r: SavedRoute) => void })
                           type="button"
                           onClick={() => startRename(r)}
                           aria-label={`Rename ${r.label}`}
-                          className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-white/5 hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                         >
                           <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
@@ -171,7 +171,7 @@ export function SavedRoutesMenu({ onLoad }: { onLoad: (r: SavedRoute) => void })
                             refresh();
                           }}
                           aria-label={`Delete ${r.label}`}
-                          className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-red-500/15 hover:text-red-300"
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-red-500/15 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                         >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>

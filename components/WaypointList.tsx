@@ -92,7 +92,7 @@ export function WaypointList({
           type="button"
           onClick={onAdd}
           disabled={disabled}
-          className="inline-flex h-9 items-center gap-1 rounded-lg bg-slate-800/80 px-3 text-xs font-semibold text-slate-100 ring-1 ring-white/10 transition hover:bg-slate-700/80 disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-1 rounded-lg bg-slate-800/80 px-3 text-xs font-semibold text-slate-100 ring-1 ring-white/10 transition hover:bg-slate-700/80 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Add stop
         </button>
@@ -129,7 +129,7 @@ export function WaypointList({
                   aria-label={`Remove stop ${i + 1}`}
                   onClick={() => handleRemove(i)}
                   disabled={disabled}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 ring-1 ring-white/10 transition hover:bg-red-500/15 hover:text-red-300 disabled:opacity-50"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 ring-1 ring-white/10 transition hover:bg-red-500/15 hover:text-red-300 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                 >
                   <Minus className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -158,7 +158,7 @@ export function WaypointList({
                       aria-label={`Move stop ${i + 1} up`}
                       disabled={disabled || first}
                       onClick={() => onMoveUp(i)}
-                      className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/5 disabled:opacity-30"
+                      className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/5 disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                     >
                       <ArrowUp className="h-3 w-3" aria-hidden="true" /> Up
                     </button>
@@ -169,7 +169,7 @@ export function WaypointList({
                       aria-label={`Move stop ${i + 1} down`}
                       disabled={disabled || last}
                       onClick={() => onMoveDown(i)}
-                      className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/5 disabled:opacity-30"
+                      className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/5 disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                     >
                       <ArrowDown className="h-3 w-3" aria-hidden="true" /> Down
                     </button>
@@ -180,7 +180,7 @@ export function WaypointList({
                       aria-label={`Duplicate stop ${i + 1}`}
                       disabled={disabled}
                       onClick={() => onDuplicate(i)}
-                      className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/5 disabled:opacity-30"
+                      className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/5 disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                     >
                       <CopyIcon className="h-3 w-3" aria-hidden="true" /> Duplicate
                     </button>
@@ -203,7 +203,7 @@ export function WaypointList({
           <button
             type="button"
             onClick={handleUndo}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-blue-300 hover:bg-white/5"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-blue-300 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
             <Undo2 className="h-3 w-3" aria-hidden="true" /> Undo
           </button>
