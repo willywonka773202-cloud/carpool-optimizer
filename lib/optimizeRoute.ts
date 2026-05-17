@@ -2,6 +2,8 @@ import type { OptimizedRoute, RouteInputs } from "./types";
 import { geocodeAddress } from "./orsGeocode";
 import { solveStopOrder } from "./orsOptimize";
 import { fetchDirections } from "./orsDirections";
+import { nearestNeighborOrder } from "./nearestNeighbor";
+import { haversineMeters } from "./distance";
 import type { Coord } from "./orsTypes";
 
 export type OrsDeps = {
@@ -14,17 +16,53 @@ export type OrsDeps = {
   }>;
 };
 
+export type ComposeOptions = {
+  /** If provided, skip geocoding the start address and use this coord directly. */
+  startCoord?: Coord;
+};
+
+/**
+ * Average driving speed used only when ORS directions is unreachable and we
+ * have to fall back to a haversine straight-line estimate. ~50 km/h.
+ */
+const FALLBACK_AVG_SPEED_MPS = 14;
+
+/**
+ * Build a synthetic straight-line polyline + summary from raw coords. Used as
+ * a graceful fallback when ORS directions is unavailable but we still want to
+ * show *something* on the map.
+ */
+function buildStraightLineRoute(
+  start: Coord,
+  ordered: Coord[],
+  end: Coord
+): { polyline: [number, number][]; etaSeconds: number; distanceMeters: number } {
+  const coords = [start, ...ordered, end];
+  let distanceMeters = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    distanceMeters += haversineMeters(coords[i], coords[i + 1]);
+  }
+  return {
+    polyline: coords.map((c) => [c.lat, c.lng] as [number, number]),
+    etaSeconds: Math.round(distanceMeters / FALLBACK_AVG_SPEED_MPS),
+    distanceMeters,
+  };
+}
+
 /**
  * Pure orchestrator — easy to test with stub deps.
- * - Zero stops: skip optimization, fetch directions for [start, end] only.
- * - One stop: skip optimization (only one possible order).
  */
 export async function composeOptimization(
   inputs: RouteInputs,
-  deps: OrsDeps
+  deps: OrsDeps,
+  options: ComposeOptions = {}
 ): Promise<OptimizedRoute> {
+  const startPromise: Promise<Coord> = options.startCoord
+    ? Promise.resolve(options.startCoord)
+    : deps.geocode(inputs.start);
+
   const [startCoord, endCoord, ...stopCoords] = await Promise.all([
-    deps.geocode(inputs.start),
+    startPromise,
     deps.geocode(inputs.end),
     ...inputs.stops.map((s) => deps.geocode(s)),
   ]);
@@ -49,20 +87,46 @@ export async function composeOptimization(
     distanceMeters,
     source: "ors",
     polyline,
+    stopCoords: orderedCoords,
   };
 }
 
-/** Live entry point — used by the page. */
+/**
+ * Live entry point — wires composeOptimization to real ORS endpoints. Adds
+ * two graceful fallbacks:
+ *   1. If ORS optimization fails, use local nearest-neighbor on the geocoded
+ *      coords (still real coords, just a greedy solver).
+ *   2. If ORS directions fails, synthesize a straight-line polyline from the
+ *      ordered coords. The route is still valid; just less precise.
+ */
 export async function optimizeRoute(
   inputs: RouteInputs,
-  apiKey: string
+  apiKey: string,
+  options: ComposeOptions = {}
 ): Promise<OptimizedRoute> {
   if (!apiKey) {
     throw new Error("No OpenRouteService API key available.");
   }
-  return composeOptimization(inputs, {
+
+  const deps: OrsDeps = {
     geocode: (addr) => geocodeAddress(addr, apiKey),
-    optimize: (s, e, st) => solveStopOrder(s, e, st, apiKey),
-    directions: (coords) => fetchDirections(coords, apiKey),
-  });
+    optimize: async (s, e, st) => {
+      try {
+        return await solveStopOrder(s, e, st, apiKey);
+      } catch {
+        // Fallback to local greedy solver — still uses real coords.
+        return nearestNeighborOrder(s, st, e);
+      }
+    },
+    directions: async (coords) => {
+      try {
+        return await fetchDirections(coords, apiKey);
+      } catch {
+        // Fallback to straight-line polyline + haversine estimate.
+        return buildStraightLineRoute(coords[0], coords.slice(1, -1), coords[coords.length - 1]);
+      }
+    },
+  };
+
+  return composeOptimization(inputs, deps, options);
 }
