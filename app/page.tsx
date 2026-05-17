@@ -9,7 +9,7 @@ import { MapView } from "@/components/MapView";
 import { RouteSheet } from "@/components/RouteSheet";
 import { RouteSummary } from "@/components/RouteSummary";
 import { SavedRoutesMenu } from "@/components/SavedRoutesMenu";
-import { ApiKeyDialog } from "@/components/ApiKeyDialog";
+import { SettingsMenu } from "@/components/SettingsMenu";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/Toast";
@@ -257,17 +257,14 @@ export default function Page() {
     <div className="space-y-4">
       <header className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="truncate text-base font-semibold text-slate-100">
-            Carpool Optimizer
-          </h1>
-          <p className="truncate text-[11px] text-slate-400">
-            Fastest drop-off order
-          </p>
+          <h1 className="truncate text-base font-semibold text-slate-100">Carpool Optimizer</h1>
+          <p className="truncate text-[11px] text-slate-400">Fastest drop-off order</p>
         </div>
-        {modeBadge}
+        <div className="flex items-center gap-2">
+          {modeBadge}
+          <SettingsMenu onApiKeySaved={refreshApiKey} />
+        </div>
       </header>
-
-      <ApiKeyDialog onSaved={refreshApiKey} />
 
       <div className="space-y-2">
         <LocationInput
@@ -378,7 +375,7 @@ export default function Page() {
       <SavedRoutesMenu onLoad={handleLoad} />
 
       {/* Desktop: fixed left panel >=md. Mobile: bottom sheet. */}
-      <aside className="pointer-events-none absolute left-0 top-0 hidden h-full w-[28rem] max-w-[40%] p-3 md:flex md:flex-col">
+      <aside className="pointer-events-none absolute left-0 top-0 hidden h-full w-full max-w-md p-3 md:flex md:flex-col">
         <div className="pointer-events-auto mt-16 flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-slate-900/85 p-5 shadow-card backdrop-blur-xl">
           {showSummary ? summaryContent : formContent}
         </div>

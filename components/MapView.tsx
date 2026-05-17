@@ -1,8 +1,8 @@
 "use client";
 
 import { GoogleMap, DirectionsRenderer, useLoadScript } from "@react-google-maps/api";
-import { MapPin, Wifi } from "lucide-react";
 import { useEffect } from "react";
+import { DemoMapPreview } from "./DemoMapPreview";
 
 type Props = {
   apiKey: string | null;
@@ -64,20 +64,13 @@ export function MapView({ apiKey, directionsResult, onLoadError }: Props) {
   }, [loadError, onLoadError]);
 
   if (!apiKey) {
-    return (
-      <EmptyMap
-        icon={<MapPin className="h-7 w-7 text-blue-300" aria-hidden="true" />}
-        title="Demo mode"
-        body="Add a Google Maps API key to render the real map. The optimizer still works with a deterministic placeholder."
-      />
-    );
+    return <DemoMapPreview />;
   }
   if (loadError) {
     return (
-      <EmptyMap
-        icon={<Wifi className="h-7 w-7 text-amber-300" aria-hidden="true" />}
+      <DemoMapPreview
         title="Map failed to load"
-        body="Check your key restrictions in Google Cloud Console. Falling back to mock optimizer."
+        body="Check your Google Maps API key restrictions. The optimizer falls back to demo mode below."
       />
     );
   }
@@ -112,24 +105,3 @@ export function MapView({ apiKey, directionsResult, onLoadError }: Props) {
   );
 }
 
-function EmptyMap({
-  icon,
-  title,
-  body,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="flex h-full w-full items-center justify-center p-6">
-      <div className="max-w-sm rounded-2xl border border-white/10 bg-slate-900/70 p-5 text-center shadow-card backdrop-blur">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-800/80 ring-1 ring-white/10">
-          {icon}
-        </div>
-        <p className="text-sm font-semibold text-slate-100">{title}</p>
-        <p className="mt-1 text-xs leading-5 text-slate-400">{body}</p>
-      </div>
-    </div>
-  );
-}
