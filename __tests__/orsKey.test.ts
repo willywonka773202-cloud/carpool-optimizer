@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { resolveApiKey, DEV_KEY_STORAGE_KEY } from "../lib/googleMaps";
+import { resolveApiKey, DEV_KEY_STORAGE_KEY } from "../lib/orsKey";
 
 beforeEach(() => {
   localStorage.clear();
@@ -9,7 +9,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("resolveApiKey", () => {
+describe("resolveApiKey (OpenRouteService)", () => {
   it("prefers the env key", () => {
     expect(
       resolveApiKey({
@@ -19,7 +19,6 @@ describe("resolveApiKey", () => {
       })
     ).toBe("ENV_KEY");
   });
-
   it("falls back to localStorage when env missing AND dialog flag is true", () => {
     expect(
       resolveApiKey({
@@ -29,7 +28,6 @@ describe("resolveApiKey", () => {
       })
     ).toBe("LOCAL_KEY");
   });
-
   it("ignores localStorage when dialog flag is not true", () => {
     expect(
       resolveApiKey({
@@ -39,7 +37,6 @@ describe("resolveApiKey", () => {
       })
     ).toBeNull();
   });
-
   it("returns null when nothing is available", () => {
     expect(
       resolveApiKey({
@@ -49,7 +46,6 @@ describe("resolveApiKey", () => {
       })
     ).toBeNull();
   });
-
   it("treats empty env string as missing", () => {
     expect(
       resolveApiKey({
@@ -59,8 +55,7 @@ describe("resolveApiKey", () => {
       })
     ).toBe("LOCAL_KEY");
   });
-
   it("exposes the dev-key localStorage key under a namespace", () => {
-    expect(DEV_KEY_STORAGE_KEY).toBe("carpool.devApiKey");
+    expect(DEV_KEY_STORAGE_KEY).toBe("carpool.devOrsKey");
   });
 });

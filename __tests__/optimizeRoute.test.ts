@@ -1,49 +1,92 @@
-import { describe, it, expect } from "vitest";
-import { applyOptimization } from "../lib/optimizeRoute";
+import { describe, expect, it, vi } from "vitest";
+import { composeOptimization } from "../lib/optimizeRoute";
+import type { Coord } from "../lib/orsTypes";
 
-const fakeResponse = {
-  routes: [
-    {
-      waypoint_order: [2, 0, 1],
-      legs: [
-        { duration: { value: 300 }, distance: { value: 1000 } },
-        { duration: { value: 600 }, distance: { value: 2500 } },
-        { duration: { value: 450 }, distance: { value: 1800 } },
-        { duration: { value: 750 }, distance: { value: 4000 } },
-      ],
-    },
-  ],
-} as unknown as google.maps.DirectionsResult;
+const coord = (lat: number, lng: number): Coord => ({ lat, lng });
 
-describe("applyOptimization", () => {
-  it("reorders stops by waypoint_order", () => {
-    const r = applyOptimization(["A", "B", "C"], fakeResponse);
-    expect(r.orderedStops).toEqual(["C", "A", "B"]);
+describe("composeOptimization", () => {
+  it("returns optimized order from ORS, reorders stops + coords, source 'ors'", async () => {
+    const geocode = vi.fn(async (addr: string) => {
+      const map: Record<string, Coord> = {
+        Home: coord(1, 1),
+        School: coord(2, 2),
+        A: coord(3, 3),
+        B: coord(4, 4),
+        C: coord(5, 5),
+      };
+      return map[addr];
+    });
+    const optimize = vi.fn(async () => [2, 0, 1]);
+    const directions = vi.fn(async () => ({
+      polyline: [[1, 1], [5, 5], [3, 3], [4, 4], [2, 2]] as [number, number][],
+      etaSeconds: 1800,
+      distanceMeters: 24000,
+    }));
+
+    const result = await composeOptimization(
+      { start: "Home", end: "School", stops: ["A", "B", "C"] },
+      { geocode, optimize, directions }
+    );
+
+    expect(result.source).toBe("ors");
+    expect(result.orderedStops).toEqual(["C", "A", "B"]);
+    expect(result.etaSeconds).toBe(1800);
+    expect(result.distanceMeters).toBe(24000);
+    expect(result.polyline).toHaveLength(5);
+
+    expect(directions).toHaveBeenCalledWith([
+      coord(1, 1),
+      coord(5, 5),
+      coord(3, 3),
+      coord(4, 4),
+      coord(2, 2),
+    ]);
   });
 
-  it("sums leg durations and distances", () => {
-    const r = applyOptimization(["A", "B", "C"], fakeResponse);
-    expect(r.etaSeconds).toBe(300 + 600 + 450 + 750);
-    expect(r.distanceMeters).toBe(1000 + 2500 + 1800 + 4000);
+  it("skips optimize() when there is exactly one stop", async () => {
+    const geocode = vi.fn(async () => coord(0, 0));
+    const optimize = vi.fn();
+    const directions = vi.fn(async () => ({
+      polyline: [] as [number, number][],
+      etaSeconds: 60,
+      distanceMeters: 1000,
+    }));
+    const result = await composeOptimization(
+      { start: "H", end: "S", stops: ["X"] },
+      { geocode, optimize, directions }
+    );
+    expect(optimize).not.toHaveBeenCalled();
+    expect(result.orderedStops).toEqual(["X"]);
   });
 
-  it("marks source as google and includes the raw response", () => {
-    const r = applyOptimization(["A", "B", "C"], fakeResponse);
-    expect(r.source).toBe("google");
-    expect(r.directionsResult).toBe(fakeResponse);
+  it("skips optimize() when there are zero stops", async () => {
+    const geocode = vi.fn(async () => coord(0, 0));
+    const optimize = vi.fn();
+    const directions = vi.fn(async () => ({
+      polyline: [] as [number, number][],
+      etaSeconds: 0,
+      distanceMeters: 0,
+    }));
+    const result = await composeOptimization(
+      { start: "H", end: "S", stops: [] },
+      { geocode, optimize, directions }
+    );
+    expect(optimize).not.toHaveBeenCalled();
+    expect(result.orderedStops).toEqual([]);
   });
 
-  it("handles missing duration/distance values as zero", () => {
-    const partial = {
-      routes: [
-        {
-          waypoint_order: [0],
-          legs: [{ duration: undefined, distance: undefined }, {}],
-        },
-      ],
-    } as unknown as google.maps.DirectionsResult;
-    const r = applyOptimization(["X"], partial);
-    expect(r.etaSeconds).toBe(0);
-    expect(r.distanceMeters).toBe(0);
+  it("propagates geocoding failures", async () => {
+    const geocode = vi.fn(async (addr: string) => {
+      if (addr === "B") throw new Error("Couldn't find address: \"B\". Try a more specific address.");
+      return coord(0, 0);
+    });
+    const optimize = vi.fn();
+    const directions = vi.fn();
+    await expect(
+      composeOptimization(
+        { start: "H", end: "S", stops: ["A", "B"] },
+        { geocode, optimize, directions }
+      )
+    ).rejects.toThrow(/Couldn't find address/);
   });
 });

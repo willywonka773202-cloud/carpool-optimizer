@@ -1,39 +1,41 @@
 "use client";
 
-import { Clock, Copy, Navigation, Pencil, Save } from "lucide-react";
+import {
+  Clock,
+  Copy,
+  MapPin,
+  Milestone,
+  Navigation,
+  Pencil,
+  Save,
+  ShieldCheck,
+  User,
+} from "lucide-react";
 import { useState } from "react";
 import type { OptimizedRoute } from "@/lib/types";
-import { buildGoogleMapsUrl } from "@/lib/routeUrl";
-
-function formatEta(seconds: number): string {
-  const m = Math.round(seconds / 60);
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  return rem === 0 ? `${h} h` : `${h} h ${rem} min`;
-}
-
-function formatMiles(meters: number): string {
-  const mi = meters / 1609.34;
-  return `${mi.toFixed(1)} mi`;
-}
+import { buildOptimizedHandoffUrl } from "@/lib/handoffUrl";
+import { formatDistance, formatEta } from "@/lib/format";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 
 export function RouteSummary({
   start,
   end,
   optimized,
+  riderNames,
   onEdit,
   onSave,
 }: {
   start: string;
   end: string;
   optimized: OptimizedRoute;
+  riderNames?: (string | null)[];
   onEdit: () => void;
   onSave: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [copyFallbackVisible, setCopyFallbackVisible] = useState(false);
-  const url = buildGoogleMapsUrl({ start, end, orderedStops: optimized.orderedStops });
+  const url = buildOptimizedHandoffUrl(start, end, optimized);
 
   async function copy() {
     try {
@@ -51,76 +53,163 @@ export function RouteSummary({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3 text-sm text-slate-600">
-        <span className="inline-flex items-center gap-1">
-          <Clock className="h-4 w-4" /> {formatEta(optimized.etaSeconds)}
-        </span>
-        <span>•</span>
-        <span>{formatMiles(optimized.distanceMeters)}</span>
-        <span>•</span>
-        <span>{optimized.orderedStops.length} stops</span>
-      </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex-1 min-h-0 space-y-4 overflow-y-auto pb-3 animate-rise">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300">
+              Route optimized
+            </p>
+            <h2 className="text-lg font-bold text-slate-100">Ready to drive</h2>
+          </div>
+          <Badge tone={optimized.source === "ors" ? "live" : "demo"}>
+            {optimized.source === "ors" ? "Live route" : "Demo route"}
+          </Badge>
+        </div>
 
-      <ol className="space-y-1 text-sm">
-        <li className="flex gap-2"><span className="font-semibold text-emerald-700">S</span> {start}</li>
-        {optimized.orderedStops.map((s, i) => (
-          <li key={`${s}-${i}`} className="flex gap-2"><span className="font-semibold text-slate-700">{i + 1}.</span> {s}</li>
-        ))}
-        <li className="flex gap-2"><span className="font-semibold text-red-700">E</span> {end}</li>
-      </ol>
-
-      <div className="grid grid-cols-2 gap-2">
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
-        >
-          <Navigation className="h-4 w-4" /> Open in Maps
-        </a>
-        <button
-          type="button"
-          onClick={copy}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          <Copy className="h-4 w-4" /> {copied ? "Copied" : "Copy link"}
-        </button>
-        <button
-          type="button"
-          onClick={onEdit}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          <Pencil className="h-4 w-4" /> Edit stops
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          <Save className="h-4 w-4" /> Save route
-        </button>
-      </div>
-
-      {copyFallbackVisible && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Copy blocked in this environment — select and copy manually:
-          </p>
-          <textarea
-            readOnly
-            value={url}
-            onFocus={(e) => e.currentTarget.select()}
-            className="h-20 w-full resize-none rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-700 outline-none focus:border-slate-400"
+        <div className="grid grid-cols-3 gap-2">
+          <Metric
+            icon={<Clock className="h-3.5 w-3.5" aria-hidden="true" />}
+            label="ETA"
+            value={formatEta(optimized.etaSeconds)}
+          />
+          <Metric
+            icon={<Milestone className="h-3.5 w-3.5" aria-hidden="true" />}
+            label="Distance"
+            value={formatDistance(optimized.distanceMeters)}
+          />
+          <Metric
+            icon={<MapPin className="h-3.5 w-3.5" aria-hidden="true" />}
+            label="Stops"
+            value={String(optimized.orderedStops.length)}
           />
         </div>
-      )}
 
-      {optimized.source === "mock" && (
-        <p className="rounded-xl bg-amber-50 p-2 text-xs text-amber-900">
-          Mock mode: stop order is a deterministic placeholder. Add a Google Maps API key for real optimization.
-        </p>
-      )}
+        <div className="flex items-start gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-100">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>Google Maps will open with this exact optimized stop order.</span>
+        </div>
+
+        <ol className="space-y-1.5">
+          <StopRow tone="start" index="S" label="Start" address={start} />
+          {optimized.orderedStops.map((s, i) => (
+            <StopRow
+              key={`${s}-${i}`}
+              tone="stop"
+              index={String(i + 1)}
+              label={riderNames?.[i] ?? `Stop ${i + 1}`}
+              address={s}
+            />
+          ))}
+          <StopRow tone="end" index="E" label="End" address={end} />
+        </ol>
+
+        {copyFallbackVisible && (
+          <div className="rounded-xl border border-white/10 bg-slate-900/60 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Copy blocked — select and copy manually
+            </p>
+            <textarea
+              readOnly
+              value={url}
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-20 w-full resize-none rounded-lg border border-white/10 bg-slate-950/60 p-2 text-xs text-slate-200 outline-none focus:border-blue-400"
+            />
+          </div>
+        )}
+
+        {optimized.source === "mock" && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-100">
+            Demo mode — this is not real route optimization. Add an OpenRouteService API key for a live route.
+          </div>
+        )}
+      </div>
+
+      {/* Sticky CTA bar — always visible at bottom of scroll container */}
+      <div className="sticky bottom-0 -mx-1 mt-3 border-t border-white/10 bg-gradient-to-t from-slate-950 via-slate-950/95 to-slate-950/70 px-1 pt-3 pb-1 backdrop-blur">
+        <a href={url} target="_blank" rel="noreferrer" className="block">
+          <Button variant="success" size="lg" fullWidth aria-label="Open optimized route in Google Maps">
+            <Navigation className="h-5 w-5" aria-hidden="true" />
+            Open Optimized Route in Google Maps
+          </Button>
+        </a>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <Button variant="secondary" size="sm" fullWidth onClick={copy}>
+            <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+            {copied ? "Copied" : "Copy link"}
+          </Button>
+          <Button variant="secondary" size="sm" fullWidth onClick={onSave}>
+            <Save className="h-3.5 w-3.5" aria-hidden="true" />
+            Save
+          </Button>
+          <Button variant="ghost" size="sm" fullWidth onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+            Edit
+          </Button>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function Metric({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-slate-900/60 p-2.5">
+      <div className="mb-0.5 flex items-center gap-1 text-slate-400">
+        {icon}
+        <span className="text-[10px] font-semibold uppercase tracking-wider">{label}</span>
+      </div>
+      <div className="text-base font-bold text-slate-100">{value}</div>
+    </div>
+  );
+}
+
+function StopRow({
+  tone,
+  index,
+  label,
+  address,
+}: {
+  tone: "start" | "stop" | "end";
+  index: string;
+  label: string;
+  address: string;
+}) {
+  const indexClass =
+    tone === "start"
+      ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30"
+      : tone === "end"
+      ? "bg-red-500/15 text-red-300 ring-red-500/30"
+      : "bg-blue-500/15 text-blue-300 ring-blue-500/30";
+  const showRiderIcon = tone === "stop" && label !== `Stop ${index}`;
+  return (
+    <li className="flex items-center gap-2.5">
+      <span
+        aria-hidden="true"
+        className={
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ring-1 " +
+          indexClass
+        }
+      >
+        {index}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1 truncate text-xs font-semibold text-slate-300">
+          {showRiderIcon && (
+            <User className="h-3 w-3 text-slate-500" aria-hidden="true" />
+          )}
+          {label}
+        </div>
+        <div className="truncate text-xs text-slate-400">{address}</div>
+      </div>
+    </li>
   );
 }

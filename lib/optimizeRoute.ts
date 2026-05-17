@@ -1,39 +1,68 @@
 import type { OptimizedRoute, RouteInputs } from "./types";
+import { geocodeAddress } from "./orsGeocode";
+import { solveStopOrder } from "./orsOptimize";
+import { fetchDirections } from "./orsDirections";
+import type { Coord } from "./orsTypes";
 
-// Pure transformation, exported for unit tests.
-export function applyOptimization(
-  originalStops: string[],
-  response: google.maps.DirectionsResult
-): OptimizedRoute {
-  const route = response.routes[0];
-  const order = (route?.waypoint_order ?? []) as number[];
-  const orderedStops = order.length
-    ? order.map((i) => originalStops[i])
-    : [...originalStops];
-  const legs = (route?.legs ?? []) as google.maps.DirectionsLeg[];
-  const etaSeconds = legs.reduce((sum, leg) => sum + (leg.duration?.value ?? 0), 0);
-  const distanceMeters = legs.reduce((sum, leg) => sum + (leg.distance?.value ?? 0), 0);
+export type OrsDeps = {
+  geocode: (address: string) => Promise<Coord>;
+  optimize: (start: Coord, end: Coord, stops: Coord[]) => Promise<number[]>;
+  directions: (coordsInOrder: Coord[]) => Promise<{
+    polyline: [number, number][];
+    etaSeconds: number;
+    distanceMeters: number;
+  }>;
+};
+
+/**
+ * Pure orchestrator — easy to test with stub deps.
+ * - Zero stops: skip optimization, fetch directions for [start, end] only.
+ * - One stop: skip optimization (only one possible order).
+ */
+export async function composeOptimization(
+  inputs: RouteInputs,
+  deps: OrsDeps
+): Promise<OptimizedRoute> {
+  const [startCoord, endCoord, ...stopCoords] = await Promise.all([
+    deps.geocode(inputs.start),
+    deps.geocode(inputs.end),
+    ...inputs.stops.map((s) => deps.geocode(s)),
+  ]);
+
+  const optimizedIndexes =
+    stopCoords.length <= 1
+      ? stopCoords.map((_, i) => i)
+      : await deps.optimize(startCoord, endCoord, stopCoords);
+
+  const orderedStops = optimizedIndexes.map((i) => inputs.stops[i]);
+  const orderedCoords = optimizedIndexes.map((i) => stopCoords[i]);
+
+  const { polyline, etaSeconds, distanceMeters } = await deps.directions([
+    startCoord,
+    ...orderedCoords,
+    endCoord,
+  ]);
+
   return {
     orderedStops,
     etaSeconds,
     distanceMeters,
-    source: "google",
-    directionsResult: response,
+    source: "ors",
+    polyline,
   };
 }
 
-// Browser-only call. Throws if the Maps SDK isn't loaded.
-export async function optimizeRoute(inputs: RouteInputs): Promise<OptimizedRoute> {
-  if (typeof window === "undefined" || !window.google?.maps) {
-    throw new Error("Google Maps SDK not loaded");
+/** Live entry point — used by the page. */
+export async function optimizeRoute(
+  inputs: RouteInputs,
+  apiKey: string
+): Promise<OptimizedRoute> {
+  if (!apiKey) {
+    throw new Error("No OpenRouteService API key available.");
   }
-  const service = new window.google.maps.DirectionsService();
-  const response = await service.route({
-    origin: inputs.start,
-    destination: inputs.end,
-    waypoints: inputs.stops.map((s) => ({ location: s, stopover: true })),
-    travelMode: window.google.maps.TravelMode.DRIVING,
-    optimizeWaypoints: true,
+  return composeOptimization(inputs, {
+    geocode: (addr) => geocodeAddress(addr, apiKey),
+    optimize: (s, e, st) => solveStopOrder(s, e, st, apiKey),
+    directions: (coords) => fetchDirections(coords, apiKey),
   });
-  return applyOptimization(inputs.stops, response);
 }
