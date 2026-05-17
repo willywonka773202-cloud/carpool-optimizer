@@ -12,7 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { useState } from "react";
-import type { OptimizedRoute } from "@/lib/types";
+import type { OptimizedRoute, RouteLeg } from "@/lib/types";
 import { buildOptimizedHandoffUrl } from "@/lib/handoffUrl";
 import { formatDistance, formatEta } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
@@ -36,6 +36,7 @@ export function RouteSummary({
   const [copied, setCopied] = useState(false);
   const [copyFallbackVisible, setCopyFallbackVisible] = useState(false);
   const url = buildOptimizedHandoffUrl(start, end, optimized);
+  const legs: RouteLeg[] | undefined = optimized.legs;
 
   async function copy() {
     try {
@@ -99,9 +100,10 @@ export function RouteSummary({
               index={String(i + 1)}
               label={riderNames?.[i] ?? `Stop ${i + 1}`}
               address={s}
+              leg={legs?.[i]}
             />
           ))}
-          <StopRow tone="end" index="E" label="End" address={end} />
+          <StopRow tone="end" index="E" label="End" address={end} leg={legs?.[legs.length - 1]} />
         </ol>
 
         {copyFallbackVisible && (
@@ -177,11 +179,13 @@ function StopRow({
   index,
   label,
   address,
+  leg,
 }: {
   tone: "start" | "stop" | "end";
   index: string;
   label: string;
   address: string;
+  leg?: { etaSeconds: number; distanceMeters: number };
 }) {
   const indexClass =
     tone === "start"
@@ -191,7 +195,7 @@ function StopRow({
       : "bg-blue-500/15 text-blue-300 ring-blue-500/30";
   const showRiderIcon = tone === "stop" && label !== `Stop ${index}`;
   return (
-    <li className="flex items-center gap-2.5">
+    <li className="flex items-start gap-2.5">
       <span
         aria-hidden="true"
         className={
@@ -209,6 +213,15 @@ function StopRow({
           {label}
         </div>
         <div className="truncate text-xs text-slate-400">{address}</div>
+        {leg && (
+          <div className="mt-0.5 flex items-center gap-2 text-[10px] font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-2.5 w-2.5" aria-hidden="true" /> {formatEta(leg.etaSeconds)}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>{formatDistance(leg.distanceMeters)}</span>
+          </div>
+        )}
       </div>
     </li>
   );

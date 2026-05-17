@@ -114,6 +114,41 @@ describe("extractDirections", () => {
   it("throws when no feature geometry is returned", () => {
     expect(() => extractDirections({ features: [] })).toThrow(/no route geometry/i);
   });
+
+  it("extracts per-segment leg ETA/distance when present", () => {
+    const r = extractDirections({
+      features: [
+        {
+          geometry: { coordinates: [[0, 0], [1, 1]] },
+          properties: {
+            summary: { duration: 900, distance: 12000 },
+            segments: [
+              { duration: 300, distance: 4000 },
+              { duration: 300, distance: 4000 },
+              { duration: 300, distance: 4000 },
+            ],
+          },
+        },
+      ],
+    });
+    expect(r.legs).toEqual([
+      { etaSeconds: 300, distanceMeters: 4000 },
+      { etaSeconds: 300, distanceMeters: 4000 },
+      { etaSeconds: 300, distanceMeters: 4000 },
+    ]);
+  });
+
+  it("returns undefined legs when segments are absent", () => {
+    const r = extractDirections({
+      features: [
+        {
+          geometry: { coordinates: [[0, 0]] },
+          properties: { summary: { duration: 0, distance: 0 } },
+        },
+      ],
+    });
+    expect(r.legs).toBeUndefined();
+  });
 });
 
 describe("fetchDirections", () => {

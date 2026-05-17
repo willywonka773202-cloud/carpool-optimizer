@@ -10,6 +10,7 @@ type OrsDirectionsResponse = {
     geometry?: { coordinates?: [number, number][] };
     properties?: {
       summary?: { distance?: number; duration?: number };
+      segments?: Array<{ distance?: number; duration?: number }>;
     };
   }>;
 };
@@ -18,6 +19,7 @@ export type DirectionsResult = {
   polyline: RoutePolyline;
   etaSeconds: number;
   distanceMeters: number;
+  legs?: { etaSeconds: number; distanceMeters: number }[];
 };
 
 /**
@@ -33,10 +35,16 @@ export function extractDirections(response: OrsDirectionsResponse): DirectionsRe
     (c) => [c[1], c[0]] as [number, number]
   );
   const summary = feature.properties?.summary ?? {};
+  const rawSegments = feature.properties?.segments ?? [];
+  const legs = rawSegments.map((s) => ({
+    etaSeconds: typeof s.duration === "number" ? s.duration : 0,
+    distanceMeters: typeof s.distance === "number" ? s.distance : 0,
+  }));
   return {
     polyline,
     etaSeconds: typeof summary.duration === "number" ? summary.duration : 0,
     distanceMeters: typeof summary.distance === "number" ? summary.distance : 0,
+    legs: legs.length > 0 ? legs : undefined,
   };
 }
 

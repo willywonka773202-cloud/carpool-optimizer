@@ -115,6 +115,30 @@ describe("composeOptimization", () => {
     expect(result.stopCoords).toEqual([coord(5, 5), coord(3, 3), coord(4, 4)]);
   });
 
+  it("threads per-leg eta/distance from directions into the OptimizedRoute", async () => {
+    const geocode = vi.fn(async () => coord(0, 0));
+    const optimize = vi.fn(async () => [0, 1]);
+    const directions = vi.fn(async () => ({
+      polyline: [] as [number, number][],
+      etaSeconds: 900,
+      distanceMeters: 12000,
+      legs: [
+        { etaSeconds: 300, distanceMeters: 4000 },
+        { etaSeconds: 300, distanceMeters: 4000 },
+        { etaSeconds: 300, distanceMeters: 4000 },
+      ],
+    }));
+    const result = await composeOptimization(
+      { start: "H", end: "E", stops: ["A", "B"] },
+      { geocode, optimize, directions }
+    );
+    expect(result.legs).toEqual([
+      { etaSeconds: 300, distanceMeters: 4000 },
+      { etaSeconds: 300, distanceMeters: 4000 },
+      { etaSeconds: 300, distanceMeters: 4000 },
+    ]);
+  });
+
   it("skips geocoding the start when startCoord is provided", async () => {
     const geocode = vi.fn(async () => coord(0, 0));
     const optimize = vi.fn(async () => [0]);

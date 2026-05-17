@@ -11,6 +11,12 @@ export type RouteInputs = {
  */
 export type RoutePolyline = [number, number][];
 
+/** Per-leg time/distance: index 0 is Start→Stop1, the last is StopN→End. */
+export type RouteLeg = {
+  etaSeconds: number;
+  distanceMeters: number;
+};
+
 export type OptimizedRoute = {
   orderedStops: string[];
   etaSeconds: number;
@@ -20,6 +26,8 @@ export type OptimizedRoute = {
   polyline?: RoutePolyline;
   /** Optional: geocoded coords for each stop in the same order as orderedStops. Live mode populates this. */
   stopCoords?: Coord[];
+  /** Per-leg ETA/distance from ORS segments. Index 0 = Start→Stop1, last = StopN→End. */
+  legs?: RouteLeg[];
 };
 
 /**

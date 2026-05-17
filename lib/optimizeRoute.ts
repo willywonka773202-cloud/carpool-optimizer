@@ -13,6 +13,7 @@ export type OrsDeps = {
     polyline: [number, number][];
     etaSeconds: number;
     distanceMeters: number;
+    legs?: { etaSeconds: number; distanceMeters: number }[];
   }>;
 };
 
@@ -36,16 +37,23 @@ function buildStraightLineRoute(
   start: Coord,
   ordered: Coord[],
   end: Coord
-): { polyline: [number, number][]; etaSeconds: number; distanceMeters: number } {
+): { polyline: [number, number][]; etaSeconds: number; distanceMeters: number; legs: { etaSeconds: number; distanceMeters: number }[] } {
   const coords = [start, ...ordered, end];
+  const legs: { etaSeconds: number; distanceMeters: number }[] = [];
   let distanceMeters = 0;
   for (let i = 0; i < coords.length - 1; i++) {
-    distanceMeters += haversineMeters(coords[i], coords[i + 1]);
+    const d = haversineMeters(coords[i], coords[i + 1]);
+    distanceMeters += d;
+    legs.push({
+      etaSeconds: Math.round(d / FALLBACK_AVG_SPEED_MPS),
+      distanceMeters: d,
+    });
   }
   return {
     polyline: coords.map((c) => [c.lat, c.lng] as [number, number]),
     etaSeconds: Math.round(distanceMeters / FALLBACK_AVG_SPEED_MPS),
     distanceMeters,
+    legs,
   };
 }
 
@@ -75,7 +83,7 @@ export async function composeOptimization(
   const orderedStops = optimizedIndexes.map((i) => inputs.stops[i]);
   const orderedCoords = optimizedIndexes.map((i) => stopCoords[i]);
 
-  const { polyline, etaSeconds, distanceMeters } = await deps.directions([
+  const { polyline, etaSeconds, distanceMeters, legs } = await deps.directions([
     startCoord,
     ...orderedCoords,
     endCoord,
@@ -88,6 +96,7 @@ export async function composeOptimization(
     source: "ors",
     polyline,
     stopCoords: orderedCoords,
+    legs,
   };
 }
 
