@@ -1,4 +1,4 @@
-export const DEV_KEY_STORAGE_KEY = "carpool.devApiKey";
+export const DEV_KEY_STORAGE_KEY = "carpool.devOrsKey";
 
 export type ResolveDeps = {
   envKey: string | undefined;
@@ -6,6 +6,12 @@ export type ResolveDeps = {
   readLocalStorage: () => string | null;
 };
 
+/**
+ * Pure resolver — pick the active OpenRouteService API key in priority order:
+ *   1. NEXT_PUBLIC_OPENROUTESERVICE_API_KEY (env)
+ *   2. localStorage[DEV_KEY_STORAGE_KEY] — only if the dialog flag is enabled
+ *   3. null
+ */
 export function resolveApiKey(deps: ResolveDeps): string | null {
   if (deps.envKey && deps.envKey.length > 0) return deps.envKey;
   if (!deps.enableDialog) return null;
@@ -13,11 +19,10 @@ export function resolveApiKey(deps: ResolveDeps): string | null {
   return local && local.length > 0 ? local : null;
 }
 
-// Convenience for the page: resolves with live env + localStorage.
 export function getActiveApiKey(): string | null {
   const enableDialog = process.env.NEXT_PUBLIC_ENABLE_API_KEY_DIALOG === "true";
   return resolveApiKey({
-    envKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    envKey: process.env.NEXT_PUBLIC_OPENROUTESERVICE_API_KEY,
     enableDialog,
     readLocalStorage: () =>
       typeof window === "undefined" ? null : window.localStorage.getItem(DEV_KEY_STORAGE_KEY),

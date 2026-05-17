@@ -6,7 +6,7 @@ import {
   clearDevApiKey,
   DEV_KEY_STORAGE_KEY,
   writeDevApiKey,
-} from "@/lib/googleMaps";
+} from "@/lib/orsKey";
 import { Button } from "@/components/ui/Button";
 
 const DIALOG_ENABLED = process.env.NEXT_PUBLIC_ENABLE_API_KEY_DIALOG === "true";
@@ -61,14 +61,14 @@ export function ApiKeyDialog({ onSaved }: { onSaved: () => void }) {
         <code className="rounded bg-black/30 px-1">{DEV_KEY_STORAGE_KEY}</code> and are never written
         into saved routes. Use this for local testing only — production should use
         the{" "}
-        <code className="rounded bg-black/30 px-1">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> environment variable.
+        <code className="rounded bg-black/30 px-1">NEXT_PUBLIC_OPENROUTESERVICE_API_KEY</code> environment variable.
       </p>
       <div className="flex gap-2">
         <input
-          aria-label="Google Maps API key"
+          aria-label="OpenRouteService API key"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="AIza..."
+          placeholder="Enter ORS API key..."
           className="h-10 min-w-0 flex-1 rounded-lg border border-amber-500/30 bg-slate-900/60 px-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-amber-300 focus:ring-4 focus:ring-amber-400/20"
         />
         <Button size="md" variant="primary" onClick={handleSave} disabled={!value.trim()}>

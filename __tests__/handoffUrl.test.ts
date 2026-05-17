@@ -1,27 +1,17 @@
 import { describe, it, expect } from "vitest";
 import { buildOptimizedHandoffUrl } from "../lib/handoffUrl";
-import { applyOptimization } from "../lib/optimizeRoute";
 import { mockOptimizeRoute } from "../lib/mockOptimizeRoute";
 import { buildGoogleMapsUrl } from "../lib/routeUrl";
 import type { OptimizedRoute } from "../lib/types";
 
 describe("buildOptimizedHandoffUrl — guarantees optimized order is used", () => {
   it("uses optimized order C, A, B when waypoint_order is [2, 0, 1] and input was A, B, C", () => {
-    const fakeResponse = {
-      routes: [
-        {
-          waypoint_order: [2, 0, 1],
-          legs: [
-            { duration: { value: 100 }, distance: { value: 1000 } },
-            { duration: { value: 100 }, distance: { value: 1000 } },
-            { duration: { value: 100 }, distance: { value: 1000 } },
-            { duration: { value: 100 }, distance: { value: 1000 } },
-          ],
-        },
-      ],
-    } as unknown as google.maps.DirectionsResult;
-
-    const optimized = applyOptimization(["A", "B", "C"], fakeResponse);
+    const optimized: OptimizedRoute = {
+      orderedStops: ["C", "A", "B"],
+      etaSeconds: 400,
+      distanceMeters: 4000,
+      source: "ors",
+    };
     expect(optimized.orderedStops).toEqual(["C", "A", "B"]);
 
     const url = buildOptimizedHandoffUrl("Home", "School", optimized);
@@ -29,16 +19,12 @@ describe("buildOptimizedHandoffUrl — guarantees optimized order is used", () =
   });
 
   it("does NOT leak the original input order into the URL when optimized differs", () => {
-    const fakeResponse = {
-      routes: [
-        {
-          waypoint_order: [2, 0, 1],
-          legs: [],
-        },
-      ],
-    } as unknown as google.maps.DirectionsResult;
-
-    const optimized = applyOptimization(["A", "B", "C"], fakeResponse);
+    const optimized: OptimizedRoute = {
+      orderedStops: ["C", "A", "B"],
+      etaSeconds: 0,
+      distanceMeters: 0,
+      source: "ors",
+    };
     const url = buildOptimizedHandoffUrl("Home", "School", optimized);
 
     // The "original order" string A|B|C must not appear after a "waypoints=".
@@ -50,7 +36,7 @@ describe("buildOptimizedHandoffUrl — guarantees optimized order is used", () =
       orderedStops: [],
       etaSeconds: 0,
       distanceMeters: 0,
-      source: "google",
+      source: "mock",
     };
     const url = buildOptimizedHandoffUrl("X", "Y", empty);
     expect(url).not.toContain("waypoints=");
@@ -67,7 +53,7 @@ describe("buildOptimizedHandoffUrl — guarantees optimized order is used", () =
       ],
       etaSeconds: 0,
       distanceMeters: 0,
-      source: "google",
+      source: "ors",
     };
     const url = buildOptimizedHandoffUrl("Home", "Work", opt);
     expect(url).toContain("Lake%20Cook%20Rd%20%26%20Waukegan%20Rd%2C%20IL");
@@ -96,7 +82,7 @@ describe("buildOptimizedHandoffUrl — guarantees optimized order is used", () =
       orderedStops: ["C", "A", "B"],
       etaSeconds: 0,
       distanceMeters: 0,
-      source: "google",
+      source: "ors",
     };
     const direct = buildGoogleMapsUrl({
       start: "Home",

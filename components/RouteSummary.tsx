@@ -62,8 +62,8 @@ export function RouteSummary({
             </p>
             <h2 className="text-lg font-bold text-slate-100">Ready to drive</h2>
           </div>
-          <Badge tone={optimized.source === "google" ? "live" : "demo"}>
-            {optimized.source === "google" ? "Live Google route" : "Demo route"}
+          <Badge tone={optimized.source === "ors" ? "live" : "demo"}>
+            {optimized.source === "ors" ? "Live route" : "Demo route"}
           </Badge>
         </div>
 

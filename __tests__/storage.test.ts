@@ -129,11 +129,11 @@ describe("storage", () => {
       stops: ["C"],
       etaSeconds: 1200,
       distanceMeters: 8000,
-      source: "google",
+      source: "ors",
     });
     expect(saved.etaSeconds).toBe(1200);
     expect(saved.distanceMeters).toBe(8000);
-    expect(saved.source).toBe("google");
+    expect(saved.source).toBe("ors");
   });
 
   it("save omits optional summary fields when not provided", () => {

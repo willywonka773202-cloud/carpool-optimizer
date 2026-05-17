@@ -14,10 +14,10 @@ describe("mockOptimizeRoute", () => {
     expect(a.orderedStops).toEqual(b.orderedStops);
   });
 
-  it("returns source 'mock' and no directionsResult", () => {
+  it("returns source 'mock' and no polyline", () => {
     const r = mockOptimizeRoute({ start: "S", end: "E", stops: ["A"] });
     expect(r.source).toBe("mock");
-    expect(r.directionsResult).toBeUndefined();
+    expect(r.polyline).toBeUndefined();
   });
 
   it("returns positive synthetic eta and distance", () => {

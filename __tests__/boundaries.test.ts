@@ -17,9 +17,13 @@ describe("module boundaries", () => {
     expect(src).not.toMatch(/from\s+["']\.\/optimizeRoute["']/);
   });
 
-  it("mockOptimizeRoute.ts never imports @react-google-maps/api", () => {
+  it("mockOptimizeRoute.ts never imports any map or routing library", () => {
     const src = read("lib/mockOptimizeRoute.ts");
     expect(src).not.toMatch(/@react-google-maps\/api/);
+    expect(src).not.toMatch(/react-leaflet/);
+    expect(src).not.toMatch(/from\s+["']leaflet["']/);
+    expect(src).not.toMatch(/openrouteservice/i);
+    expect(src).not.toMatch(/google\.maps/);
   });
 
   it("storage.ts only references apiKey and directionsResult inside FORBIDDEN_FIELDS", () => {
@@ -44,11 +48,11 @@ describe("module boundaries", () => {
     expect(src).not.toMatch(/from\s+["']\.\/(?:mock)?[Oo]ptimizeRoute["']/);
   });
 
-  it("handoffUrl.ts is pure (no google, no optimizer imports)", () => {
+  it("handoffUrl.ts is pure (no map libs, no optimizer imports)", () => {
     const src = read("lib/handoffUrl.ts");
     expect(src).not.toMatch(/@react-google-maps\/api/);
+    expect(src).not.toMatch(/react-leaflet/);
     expect(src).not.toMatch(/google\.maps/);
-    // It can import OptimizedRoute (a type) but not the optimizer modules themselves
     expect(src).not.toMatch(/from\s+["']\.\/(?:mock)?[Oo]ptimizeRoute["']/);
   });
 });

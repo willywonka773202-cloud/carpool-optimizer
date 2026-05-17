@@ -16,7 +16,7 @@ import { useToast } from "@/components/Toast";
 import { validateRouteInputs } from "@/lib/validation";
 import { optimizeRoute } from "@/lib/optimizeRoute";
 import { mockOptimizeRoute } from "@/lib/mockOptimizeRoute";
-import { getActiveApiKey } from "@/lib/googleMaps";
+import { getActiveApiKey } from "@/lib/orsKey";
 import { saveRoute } from "@/lib/storage";
 import {
   duplicateItem,
@@ -168,8 +168,8 @@ export default function Page() {
       setExpanded(false);
       toast.show({
         title:
-          result.source === "google"
-            ? "Live route ready"
+          result.source === "ors"
+            ? "Route ready"
             : "Demo route ready",
         tone: "success",
       });
@@ -366,7 +366,7 @@ export default function Page() {
       <div className="absolute inset-0">
         <MapView
           apiKey={apiKey}
-          directionsResult={optimized?.directionsResult}
+          polyline={optimized?.polyline}
           onLoadError={() => setMapsLoadFailed(true)}
         />
       </div>

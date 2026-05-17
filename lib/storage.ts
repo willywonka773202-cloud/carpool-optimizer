@@ -12,7 +12,7 @@ export type SaveInput = {
   riderNames?: (string | null)[];
   etaSeconds?: number;
   distanceMeters?: number;
-  source?: "google" | "mock";
+  source?: "ors" | "mock";
 };
 
 export type UpdateInput = Partial<SaveInput>;
