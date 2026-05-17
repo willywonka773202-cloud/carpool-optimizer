@@ -1,0 +1,14 @@
+{
+  "name": "Carpool Optimizer",
+  "short_name": "Carpool",
+  "description": "Fastest drop-off order for group drives.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    { "src": "/icon", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-icon", "sizes": "180x180", "type": "image/png" }
+  ]
+}

@@ -5,6 +5,13 @@ import { ToastProvider } from "@/components/Toast";
 export const metadata: Metadata = {
   title: "Carpool Optimizer",
   description: "Fastest drop-off order for group drives. Built on Google Maps DirectionsService.",
+  manifest: "/manifest.webmanifest",
+  applicationName: "Carpool Optimizer",
+  appleWebApp: {
+    capable: true,
+    title: "Carpool",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
