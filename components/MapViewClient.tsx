@@ -11,21 +11,31 @@ import {
   ZoomControl,
   useMap,
 } from "react-leaflet";
+import type { Coord } from "@/lib/orsTypes";
 
 const CARTO_DARK_TILES =
   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 const CARTO_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
-const DEFAULT_CENTER: [number, number] = [39.8283, -98.5795]; // continental US
+const DEFAULT_CENTER: [number, number] = [39.8283, -98.5795];
 const DEFAULT_ZOOM = 4;
 
 type Props = {
   polyline?: [number, number][];
+  stopCoords?: Coord[];
 };
 
-export default function MapViewClient({ polyline }: Props) {
-  const markers = useMemo(() => deriveMarkers(polyline ?? []), [polyline]);
+export default function MapViewClient({ polyline, stopCoords }: Props) {
+  const markers = useMemo(
+    () => deriveMarkers(polyline ?? [], stopCoords ?? []),
+    [polyline, stopCoords]
+  );
+  const fitPositions = useMemo(() => {
+    const list: [number, number][] = polyline ? [...polyline] : [];
+    for (const sc of stopCoords ?? []) list.push([sc.lat, sc.lng]);
+    return list;
+  }, [polyline, stopCoords]);
 
   return (
     <MapContainer
@@ -41,14 +51,12 @@ export default function MapViewClient({ polyline }: Props) {
       <ZoomControl position="topright" />
       <InvalidateOnResize />
       {polyline && polyline.length >= 2 && (
-        <>
-          <Polyline
-            positions={polyline}
-            pathOptions={{ color: "#3b82f6", weight: 5, opacity: 0.95 }}
-          />
-          <FitBounds positions={polyline} />
-        </>
+        <Polyline
+          positions={polyline}
+          pathOptions={{ color: "#3b82f6", weight: 5, opacity: 0.95 }}
+        />
       )}
+      {fitPositions.length >= 2 && <FitBounds positions={fitPositions} />}
       {markers.map((m) => (
         <Marker key={m.key} position={m.position} icon={m.icon} />
       ))}
@@ -56,27 +64,15 @@ export default function MapViewClient({ polyline }: Props) {
   );
 }
 
-/**
- * Forces Leaflet to recompute its container size on mount and whenever the
- * outer container resizes. Without this, dynamic-imported maps in flex/grid
- * parents render at near-zero size and tile across the entire viewport.
- */
 function InvalidateOnResize() {
   const map = useMap();
   const observerRef = useRef<ResizeObserver | null>(null);
-
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // First pass after mount — runs on next animation frame so the parent has laid out.
-    const raf = requestAnimationFrame(() => {
-      map.invalidateSize();
-    });
-    // Subsequent passes on any container resize.
+    const raf = requestAnimationFrame(() => map.invalidateSize());
     const container = map.getContainer();
     if ("ResizeObserver" in window) {
-      observerRef.current = new ResizeObserver(() => {
-        map.invalidateSize();
-      });
+      observerRef.current = new ResizeObserver(() => map.invalidateSize());
       observerRef.current.observe(container);
     }
     return () => {
@@ -85,7 +81,6 @@ function InvalidateOnResize() {
       observerRef.current = null;
     };
   }, [map]);
-
   return null;
 }
 
@@ -123,10 +118,25 @@ type DerivedMarker = {
   icon: L.DivIcon;
 };
 
-function deriveMarkers(positions: [number, number][]): DerivedMarker[] {
-  if (positions.length < 2) return [];
-  return [
-    { key: "start", position: positions[0], icon: pinIcon("S", "#10b981") },
-    { key: "end", position: positions[positions.length - 1], icon: pinIcon("E", "#ef4444") },
-  ];
+function deriveMarkers(
+  polyline: [number, number][],
+  stopCoords: Coord[]
+): DerivedMarker[] {
+  const out: DerivedMarker[] = [];
+  if (polyline.length >= 2) {
+    out.push({ key: "start", position: polyline[0], icon: pinIcon("S", "#10b981") });
+    out.push({
+      key: "end",
+      position: polyline[polyline.length - 1],
+      icon: pinIcon("E", "#ef4444"),
+    });
+  }
+  stopCoords.forEach((c, i) => {
+    out.push({
+      key: `stop-${i}`,
+      position: [c.lat, c.lng],
+      icon: pinIcon(String(i + 1), "#3b82f6"),
+    });
+  });
+  return out;
 }

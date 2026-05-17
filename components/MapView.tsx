@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { Coord } from "@/lib/orsTypes";
 import { DemoMapPreview } from "./DemoMapPreview";
 
 const MapViewClient = dynamic(() => import("./MapViewClient"), {
@@ -11,18 +12,14 @@ const MapViewClient = dynamic(() => import("./MapViewClient"), {
 type Props = {
   apiKey: string | null;
   polyline?: [number, number][];
+  stopCoords?: Coord[];
   onLoadError?: () => void;
 };
 
-/**
- * SSR-safe map shell. Renders the designed demo preview when there's no ORS
- * key (real geocoding wouldn't work anyway, so a bare map would be misleading).
- * Otherwise renders the client-only Leaflet/OSM map.
- */
-export function MapView({ apiKey, polyline, onLoadError: _onLoadError }: Props) {
-  void _onLoadError; // reserved for future tile-load-error handling
+export function MapView({ apiKey, polyline, stopCoords, onLoadError: _onLoadError }: Props) {
+  void _onLoadError;
   if (!apiKey) {
     return <DemoMapPreview />;
   }
-  return <MapViewClient polyline={polyline} />;
+  return <MapViewClient polyline={polyline} stopCoords={stopCoords} />;
 }

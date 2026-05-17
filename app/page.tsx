@@ -4,8 +4,10 @@ import { useEffect, useMemo, useReducer, useState } from "react";
 import { ArrowDownUp, RotateCcw, Sparkles } from "lucide-react";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { LocationInput } from "@/components/LocationInput";
+import { UseLocationButton } from "@/components/UseLocationButton";
 import { WaypointList } from "@/components/WaypointList";
 import { MapView } from "@/components/MapView";
+import type { Coord } from "@/lib/orsTypes";
 import { RouteSheet } from "@/components/RouteSheet";
 import { RouteSummary } from "@/components/RouteSummary";
 import { SavedRoutesMenu } from "@/components/SavedRoutesMenu";
@@ -80,6 +82,7 @@ export default function Page() {
   const [waypoints, setWaypoints] = useState<string[]>([""]);
   const [riderNames, setRiderNames] = useState<(string | null)[]>([null]);
   const [showRiderNames, setShowRiderNames] = useState(false);
+  const [startCoord, setStartCoord] = useState<Coord | null>(null);
   const [phase, dispatch] = useReducer(phaseReducer, { kind: "editing" });
   const [expanded, setExpanded] = useState(true);
 
@@ -150,6 +153,16 @@ export default function Page() {
     dispatch({ type: "edit_changed" });
   }
 
+  function handleUseLocation(coord: Coord) {
+    setStartCoord(coord);
+    setStart(`Current location (${coord.lat.toFixed(4)}, ${coord.lng.toFixed(4)})`);
+    dispatch({ type: "edit_changed" });
+    toast.show({ title: "Using current location as start", tone: "success" });
+  }
+  function handleLocationError(message: string) {
+    dispatch({ type: "validation_failed", message });
+  }
+
   async function handleOptimize() {
     if (phase.kind === "optimizing") return;
     const inputs: RouteInputs = { start, end, stops: waypoints };
@@ -163,7 +176,7 @@ export default function Page() {
       const cleanInputs: RouteInputs = { start, end, stops: v.cleanedWaypoints };
       const result = useMock
         ? mockOptimizeRoute(cleanInputs)
-        : await optimizeRoute(cleanInputs, apiKey ?? "");
+        : await optimizeRoute(cleanInputs, apiKey ?? "", { startCoord: startCoord ?? undefined });
       dispatch({ type: "optimize_success", result });
       setExpanded(false);
       toast.show({
@@ -223,6 +236,7 @@ export default function Page() {
       ensureRidersAlignment(stops, r.riderNames ?? Array<string | null>(stops.length).fill(null))
     );
     setShowRiderNames(Boolean(r.riderNames?.some((n) => n)));
+    setStartCoord(null);
     dispatch({ type: "reset" });
     setExpanded(true);
     toast.show({ title: `Loaded ${r.label}`, tone: "info" });
@@ -234,6 +248,7 @@ export default function Page() {
     setWaypoints([""]);
     setRiderNames([null]);
     setShowRiderNames(false);
+    setStartCoord(null);
     dispatch({ type: "reset" });
     setExpanded(true);
     toast.show({ title: "Cleared route", tone: "info" });
@@ -273,6 +288,7 @@ export default function Page() {
           iconTone="emerald"
           onChange={(v) => {
             setStart(v);
+            if (startCoord) setStartCoord(null);
             dispatch({ type: "edit_changed" });
           }}
           disabled={loading}
@@ -287,24 +303,38 @@ export default function Page() {
           }}
           disabled={loading}
         />
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleSwapEnds}
-            disabled={loading || (!start && !end)}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/5 disabled:opacity-50"
-          >
-            <ArrowDownUp className="h-3 w-3" aria-hidden="true" /> Swap start/end
-          </button>
-          <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-            <input
-              type="checkbox"
-              checked={showRiderNames}
-              onChange={(e) => setShowRiderNames(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-white/20 bg-slate-900/60 text-blue-500 focus:ring-blue-500/40"
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <UseLocationButton
+              onLocate={handleUseLocation}
+              onError={handleLocationError}
+              disabled={loading}
             />
-            Show rider names
-          </label>
+            {startCoord && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-500/30">
+                GPS start
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSwapEnds}
+              disabled={loading || (!start && !end)}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/5 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            >
+              <ArrowDownUp className="h-3 w-3" aria-hidden="true" /> Swap
+            </button>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+              <input
+                type="checkbox"
+                checked={showRiderNames}
+                onChange={(e) => setShowRiderNames(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-white/20 bg-slate-900/60 text-blue-500 focus:ring-blue-500/40"
+              />
+              Rider names
+            </label>
+          </div>
         </div>
       </div>
 
@@ -378,6 +408,7 @@ export default function Page() {
           <MapView
             apiKey={apiKey}
             polyline={optimized?.polyline}
+            stopCoords={optimized?.stopCoords}
             onLoadError={() => setMapsLoadFailed(true)}
           />
         </div>

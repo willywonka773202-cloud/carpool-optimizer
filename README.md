@@ -86,7 +86,7 @@ Pure helpers are unit-tested with Vitest. No live network calls — fetch is dep
 | `waypointOps.test.ts` | move-up / move-down / duplicate / remove |
 | `boundaries.test.ts` | Real/mock separation, storage forbidden-field discipline, ORS helpers never import map UI |
 
-Total: **84 tests**.
+Total: **102 tests**.
 
 ## Architecture
 
@@ -102,7 +102,7 @@ components/
   ui/Badge.tsx     # live | demo | neutral | error
   ui/Card.tsx      # rounded surface
   MapView.tsx          # SSR-safe wrapper: shows DemoMapPreview when no key, else lazy-loads MapViewClient
-  MapViewClient.tsx    # react-leaflet + OSM dark tiles + ORS polyline + S/E divIcon markers
+  MapViewClient.tsx    # react-leaflet + OSM dark tiles + ORS polyline + S/E divIcon markers + numbered 1..N stop markers
   DemoMapPreview.tsx   # designed SVG illustration for demo/no-key mode
   RouteSheet.tsx       # non-draggable bottom sheet, two states
   RouteSummary.tsx     # ETA/distance/stops, ordered list, BIG green Open in Maps CTA (sticky)
@@ -128,7 +128,7 @@ lib/
   format.ts            # ETA + distance formatters
   waypointOps.ts       # pure array reorder / duplicate / remove
   types.ts             # RouteInputs, OptimizedRoute, SavedRoute, OptimizationMode
-__tests__/             # 84 unit tests + boundary contract
+__tests__/             # 102 unit tests + boundary contract
 ```
 
 **Boundary rules (enforced by `__tests__/boundaries.test.ts`):**
@@ -155,6 +155,14 @@ __tests__/             # 84 unit tests + boundary contract
 
 The handoff URL to native Google Maps is built locally from the optimized order in all modes — it works without any API key (Google or ORS).
 
+## GPS & graceful fallbacks
+
+- **Use my current location** — there's a button next to the Start field that requests the browser's `geolocation` permission. If granted, the start point uses your exact coordinates (no geocoding round trip) and the map fits to a route that begins there. Denying / timeout / unsupported all surface friendly inline messages — the manual address path always still works.
+- **Nearest-neighbor fallback** — if ORS optimization fails or rate-limits, the app falls back to a local greedy nearest-neighbor solver on the geocoded coords. The route is still real; the solver is just simpler.
+- **Straight-line polyline fallback** — if ORS directions fails, the app shows a straight-line polyline between the optimized stops and estimates the duration using a ~50 km/h average. The route order is still real; only the on-screen shape is approximate.
+
+In all three fallback modes the Google Maps handoff URL is still built from the optimized stop order — Google Maps does the actual driving navigation, so visual approximation in this app doesn't degrade the result the driver follows.
+
 ## Deploy to Vercel
 
 1. Push to GitHub.
@@ -170,9 +178,9 @@ CI (`.github/workflows/ci.yml`) runs `typecheck → lint → test → build` on 
 
 ## Known limitations
 
+- **Production tile servers**: the demo uses CARTO Dark Matter (free, but not for high-traffic production). For a public deployment, consider a paid tile provider (Mapbox, MapTiler) or your own raster cache to comply with OSM usage rules.
 - Single driver only — no multi-driver coordination.
 - No Places-style autocomplete (ORS has a `/autocomplete` endpoint that could be wired in v3).
-- No browser-geolocation "use my current location" button.
 - Bottom sheet is non-draggable (two states toggled by chevron).
 - Mock optimizer's ordering is a length-based heuristic (only used when no API key is set).
 - No React component-level tests; pure logic only.
@@ -180,12 +188,12 @@ CI (`.github/workflows/ci.yml`) runs `typecheck → lint → test → build` on 
 ## Future improvements
 
 - ORS autocomplete on address inputs.
-- Browser geolocation for the start address.
+- Browser geolocation for the start address — implemented via "Use my location" button.
 - Drag-to-reorder waypoints.
 - Route sharing across devices (would need a backend).
 - Multi-driver assignment.
 - Map controls overlay (recenter, fit-to-route).
-- Stop markers (1..N) at geocoded coordinates, not just S/E.
+- Stop markers (1..N) at geocoded coordinates — now implemented with numbered blue divIcon markers and autofit-to-route framing.
 
 ## Repo metadata
 
