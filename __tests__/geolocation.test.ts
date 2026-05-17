@@ -57,7 +57,6 @@ describe("getCurrentCoord", () => {
   it("rejects with kind 'unsupported' when geolocation is missing", async () => {
     // Explicitly pass undefined to opt out of the navigator fallback.
     await expect(
-      // @ts-expect-error intentionally passing undefined for this branch
       getCurrentCoord(fakeGeolocator("missing"))
     ).rejects.toMatchObject({ kind: "unsupported" });
   });

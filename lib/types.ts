@@ -1,3 +1,5 @@
+import type { Coord } from "./orsTypes";
+
 export type RouteInputs = {
   start: string;
   end: string;
@@ -16,6 +18,8 @@ export type OptimizedRoute = {
   source: "ors" | "mock";
   /** Only the live ORS path populates this. Mock omits it. */
   polyline?: RoutePolyline;
+  /** Optional: geocoded coords for each stop in the same order as orderedStops. Live mode populates this. */
+  stopCoords?: Coord[];
 };
 
 /**
