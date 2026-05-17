@@ -8,7 +8,7 @@ import { MapPin } from "lucide-react";
  */
 export function DemoMapPreview({
   title = "Demo route preview",
-  body = "Add a Google Maps API key to see the live map. Route optimization still works in demo mode.",
+  body = "Add an OpenRouteService API key to see the live map. Route optimization still works in demo mode.",
 }: {
   title?: string;
   body?: string;

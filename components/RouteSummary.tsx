@@ -120,7 +120,7 @@ export function RouteSummary({
 
         {optimized.source === "mock" && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-100">
-            Demo mode — this is not real Google optimization. Add a Google Maps API key for a live route.
+            Demo mode — this is not real route optimization. Add an OpenRouteService API key for a live route.
           </div>
         )}
       </div>
