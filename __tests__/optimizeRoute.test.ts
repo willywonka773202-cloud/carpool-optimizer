@@ -89,4 +89,47 @@ describe("composeOptimization", () => {
       )
     ).rejects.toThrow(/Couldn't find address/);
   });
+
+  it("returns stopCoords aligned with optimizedStops", async () => {
+    const geocode = vi.fn(async (addr: string) => {
+      const map: Record<string, Coord> = {
+        Home: coord(1, 1),
+        School: coord(2, 2),
+        A: coord(3, 3),
+        B: coord(4, 4),
+        C: coord(5, 5),
+      };
+      return map[addr];
+    });
+    const optimize = vi.fn(async () => [2, 0, 1]);
+    const directions = vi.fn(async () => ({
+      polyline: [] as [number, number][],
+      etaSeconds: 0,
+      distanceMeters: 0,
+    }));
+    const result = await composeOptimization(
+      { start: "Home", end: "School", stops: ["A", "B", "C"] },
+      { geocode, optimize, directions }
+    );
+    expect(result.orderedStops).toEqual(["C", "A", "B"]);
+    expect(result.stopCoords).toEqual([coord(5, 5), coord(3, 3), coord(4, 4)]);
+  });
+
+  it("skips geocoding the start when startCoord is provided", async () => {
+    const geocode = vi.fn(async () => coord(0, 0));
+    const optimize = vi.fn(async () => [0]);
+    const directions = vi.fn(async () => ({
+      polyline: [] as [number, number][],
+      etaSeconds: 0,
+      distanceMeters: 0,
+    }));
+    await composeOptimization(
+      { start: "ignored-address", end: "E", stops: ["S1"] },
+      { geocode, optimize, directions },
+      { startCoord: coord(99, 99) }
+    );
+    // start address was NOT geocoded — only end + one stop.
+    expect(geocode).toHaveBeenCalledTimes(2);
+    expect(geocode).not.toHaveBeenCalledWith("ignored-address");
+  });
 });

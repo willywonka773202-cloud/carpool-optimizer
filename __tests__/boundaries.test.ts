@@ -64,4 +64,28 @@ describe("module boundaries", () => {
       expect(src, `${f} should not import @react-google-maps/api`).not.toMatch(/@react-google-maps\/api/);
     }
   });
+
+  it("nearestNeighbor.ts is pure (no map UI, no network)", () => {
+    const src = read("lib/nearestNeighbor.ts");
+    expect(src).not.toMatch(/react-leaflet/);
+    expect(src).not.toMatch(/from\s+["']leaflet["']/);
+    expect(src).not.toMatch(/openrouteservice/i);
+    expect(src).not.toMatch(/\bfetch\(/);
+  });
+
+  it("distance.ts is pure (no map UI, no network)", () => {
+    const src = read("lib/distance.ts");
+    expect(src).not.toMatch(/react-leaflet/);
+    expect(src).not.toMatch(/from\s+["']leaflet["']/);
+    expect(src).not.toMatch(/openrouteservice/i);
+    expect(src).not.toMatch(/\bfetch\(/);
+  });
+
+  it("geolocation.ts is pure (no map UI, no network)", () => {
+    const src = read("lib/geolocation.ts");
+    expect(src).not.toMatch(/react-leaflet/);
+    expect(src).not.toMatch(/from\s+["']leaflet["']/);
+    expect(src).not.toMatch(/openrouteservice/i);
+    expect(src).not.toMatch(/\bfetch\(/);
+  });
 });
