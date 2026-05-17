@@ -14,6 +14,11 @@ export type OptimizedRoute = {
   directionsResult?: google.maps.DirectionsResult;
 };
 
+/**
+ * Persisted route. `riderNames` is parallel to `stops` (same length when present);
+ * each entry is the optional rider/passenger name for that stop. `updatedAt` is set
+ * on every save after the initial create.
+ */
 export type SavedRoute = {
   id: string;
   label: string;
@@ -21,4 +26,12 @@ export type SavedRoute = {
   end: string;
   stops: string[];
   createdAt: number;
+  updatedAt?: number;
+  riderNames?: (string | null)[];
+  etaSeconds?: number;
+  distanceMeters?: number;
+  source?: "google" | "mock";
 };
+
+/** Which optimizer the page should use, based on env and load status. */
+export type OptimizationMode = "live" | "demo" | "loadError";

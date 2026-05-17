@@ -29,4 +29,18 @@ describe("module boundaries", () => {
     expect(apiKeyMatches.length).toBeLessThanOrEqual(1);
     expect(directionsMatches.length).toBeLessThanOrEqual(1);
   });
+
+  it("format.ts is pure (no google, no optimizer imports)", () => {
+    const src = read("lib/format.ts");
+    expect(src).not.toMatch(/@react-google-maps\/api/);
+    expect(src).not.toMatch(/google\.maps/);
+    expect(src).not.toMatch(/from\s+["']\.\/(?:mock)?[Oo]ptimizeRoute["']/);
+  });
+
+  it("waypointOps.ts is pure (no google, no optimizer imports)", () => {
+    const src = read("lib/waypointOps.ts");
+    expect(src).not.toMatch(/@react-google-maps\/api/);
+    expect(src).not.toMatch(/google\.maps/);
+    expect(src).not.toMatch(/from\s+["']\.\/(?:mock)?[Oo]ptimizeRoute["']/);
+  });
 });
