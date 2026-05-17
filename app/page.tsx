@@ -286,6 +286,7 @@ export default function Page() {
           label="Start"
           value={start}
           iconTone="emerald"
+          apiKey={apiKey}
           onChange={(v) => {
             setStart(v);
             if (startCoord) setStartCoord(null);
@@ -297,6 +298,7 @@ export default function Page() {
           label="End"
           value={end}
           iconTone="red"
+          apiKey={apiKey}
           onChange={(v) => {
             setEnd(v);
             dispatch({ type: "edit_changed" });
@@ -339,6 +341,7 @@ export default function Page() {
       </div>
 
       <WaypointList
+        apiKey={apiKey}
         waypoints={waypoints}
         riderNames={riderNames}
         disabled={loading}

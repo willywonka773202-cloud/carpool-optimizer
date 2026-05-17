@@ -2,6 +2,9 @@
 
 import { ArrowDown, ArrowUp, Copy as CopyIcon, Minus, Plus, Undo2, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useState as useRowState } from "react";
+import { useAddressSuggestions as useRowSuggestions } from "@/lib/useAddressSuggestions";
+import { AddressSuggestions as RowSuggestions } from "./AddressSuggestions";
 
 type RemovedSnapshot = {
   index: number;
@@ -25,6 +28,7 @@ export function WaypointList({
   onMoveDown,
   onDuplicate,
   showRiderNames = false,
+  apiKey = null,
 }: {
   waypoints: string[];
   riderNames?: (string | null)[];
@@ -38,6 +42,7 @@ export function WaypointList({
   onMoveDown?: (index: number) => void;
   onDuplicate?: (index: number) => void;
   showRiderNames?: boolean;
+  apiKey?: string | null;
 }) {
   const [removed, setRemoved] = useState<RemovedSnapshot | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -115,14 +120,12 @@ export function WaypointList({
                 >
                   {i + 1}
                 </span>
-                <input
-                  type="text"
+                <WaypointAddressInput
+                  index={i}
                   value={wp}
                   disabled={disabled}
-                  placeholder={`Stop ${i + 1} address`}
-                  aria-label={`Stop ${i + 1} address`}
-                  onChange={(e) => onChange(i, e.target.value)}
-                  className="h-11 min-w-0 flex-1 rounded-lg border border-white/10 bg-slate-950/40 px-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50"
+                  apiKey={apiKey ?? null}
+                  onChange={(v) => onChange(i, v)}
                 />
                 <button
                   type="button"
@@ -209,6 +212,51 @@ export function WaypointList({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function WaypointAddressInput({
+  index,
+  value,
+  disabled,
+  apiKey,
+  onChange,
+}: {
+  index: number;
+  value: string;
+  disabled?: boolean;
+  apiKey: string | null;
+  onChange: (v: string) => void;
+}) {
+  const [focused, setFocused] = useRowState(false);
+  const { suggestions, loading } = useRowSuggestions(value, apiKey);
+  return (
+    <div className="relative min-w-0 flex-1">
+      <input
+        type="text"
+        value={value}
+        disabled={disabled}
+        placeholder={`Stop ${index + 1} address`}
+        aria-label={`Stop ${index + 1} address`}
+        autoComplete="off"
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 120)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") (e.currentTarget as HTMLInputElement).blur();
+        }}
+        className="h-11 w-full min-w-0 rounded-lg border border-white/10 bg-slate-950/40 px-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50"
+      />
+      <RowSuggestions
+        open={focused && apiKey !== null}
+        loading={loading}
+        suggestions={suggestions}
+        onPick={(s) => {
+          onChange(s.label);
+          setFocused(false);
+        }}
+      />
     </div>
   );
 }

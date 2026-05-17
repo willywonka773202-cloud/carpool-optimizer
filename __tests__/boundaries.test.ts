@@ -56,6 +56,13 @@ describe("module boundaries", () => {
     expect(src).not.toMatch(/from\s+["']\.\/(?:mock)?[Oo]ptimizeRoute["']/);
   });
 
+  it("orsAutocomplete.ts never imports map UI", () => {
+    const src = read("lib/orsAutocomplete.ts");
+    expect(src).not.toMatch(/react-leaflet/);
+    expect(src).not.toMatch(/from\s+["']leaflet["']/);
+    expect(src).not.toMatch(/@react-google-maps\/api/);
+  });
+
   it("ORS helpers never import map UI", () => {
     for (const f of ["lib/orsGeocode.ts", "lib/orsOptimize.ts", "lib/orsDirections.ts"]) {
       const src = read(f);
