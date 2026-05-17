@@ -22,10 +22,11 @@ describe("module boundaries", () => {
     expect(src).not.toMatch(/@react-google-maps\/api/);
   });
 
-  it("storage.ts never references apiKey or directionsResult as a stored field", () => {
+  it("storage.ts only references apiKey and directionsResult inside FORBIDDEN_FIELDS", () => {
     const src = read("lib/storage.ts");
-    // The string "apiKey" must appear only in FORBIDDEN_FIELDS.
-    const matches = src.match(/apiKey/g) ?? [];
-    expect(matches.length).toBeLessThanOrEqual(1);
+    const apiKeyMatches = src.match(/apiKey/g) ?? [];
+    const directionsMatches = src.match(/directionsResult/g) ?? [];
+    expect(apiKeyMatches.length).toBeLessThanOrEqual(1);
+    expect(directionsMatches.length).toBeLessThanOrEqual(1);
   });
 });

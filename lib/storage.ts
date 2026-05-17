@@ -12,6 +12,7 @@ export type SaveInput = {
 };
 
 function readAll(): SavedRoute[] {
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -34,6 +35,7 @@ function readAll(): SavedRoute[] {
 }
 
 function writeAll(routes: SavedRoute[]): void {
+  if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(routes));
 }
 
@@ -67,5 +69,6 @@ export function deleteRoute(id: string): void {
 }
 
 export function clearAll(): void {
+  if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
 }

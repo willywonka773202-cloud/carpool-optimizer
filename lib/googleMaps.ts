@@ -25,6 +25,9 @@ export function getActiveApiKey(): string | null {
 }
 
 export function writeDevApiKey(key: string): void {
+  if (typeof window === "undefined") {
+    throw new Error("writeDevApiKey is browser-only");
+  }
   if (process.env.NEXT_PUBLIC_ENABLE_API_KEY_DIALOG !== "true") {
     throw new Error("Dev API key dialog is disabled in this build.");
   }
@@ -32,5 +35,6 @@ export function writeDevApiKey(key: string): void {
 }
 
 export function clearDevApiKey(): void {
+  if (typeof window === "undefined") return;
   window.localStorage.removeItem(DEV_KEY_STORAGE_KEY);
 }

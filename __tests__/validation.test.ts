@@ -36,4 +36,10 @@ describe("validateRouteInputs", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toMatch(/empty/i);
   });
+
+  it("reports the blank-row message (not the zero-waypoints message) when only blank rows exist", () => {
+    const r = validateRouteInputs({ start: "A", end: "B", waypoints: [" "] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toMatch(/empty/i);
+  });
 });

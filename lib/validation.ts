@@ -17,11 +17,11 @@ export function validateRouteInputs(input: ValidateInput): ValidationResult {
   if (!cleanStart || !cleanEnd) {
     return { ok: false, message: "Start and end locations are required." };
   }
-  if (cleanedWaypoints.length === 0) {
-    return { ok: false, message: "Add at least one drop-off waypoint before optimizing." };
-  }
   if (trimmed.some((w) => w.length === 0)) {
     return { ok: false, message: "Remove empty drop-off rows or fill them in before optimizing." };
+  }
+  if (cleanedWaypoints.length === 0) {
+    return { ok: false, message: "Add at least one drop-off waypoint before optimizing." };
   }
   return { ok: true, cleanedWaypoints };
 }
