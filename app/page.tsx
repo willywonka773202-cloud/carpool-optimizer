@@ -361,32 +361,48 @@ export default function Page() {
     );
 
   return (
-    <main className="relative h-[100dvh] overflow-hidden">
-      {/* Map fills viewport behind everything */}
-      <div className="absolute inset-0">
-        <MapView
-          apiKey={apiKey}
-          polyline={optimized?.polyline}
-          onLoadError={() => setMapsLoadFailed(true)}
-        />
-      </div>
-
-      {/* Saved routes menu, top-left, above map */}
-      <SavedRoutesMenu onLoad={handleLoad} />
-
-      {/* Desktop: fixed left panel >=md. Mobile: bottom sheet. */}
-      <aside className="pointer-events-none absolute left-0 top-0 hidden h-full w-full max-w-md p-3 md:flex md:flex-col">
-        <div className="pointer-events-auto mt-16 flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-slate-900/85 p-5 shadow-card backdrop-blur-xl">
-          {showSummary ? summaryContent : formContent}
+    <main className="grid h-[100dvh] grid-cols-1 md:grid-cols-[28rem_1fr]">
+      {/* Desktop side panel (md+) — real grid column, no longer an overlay */}
+      <aside className="relative hidden h-full min-h-0 flex-col border-r border-white/10 bg-slate-900/80 backdrop-blur-xl md:flex">
+        <div className="flex h-full min-h-0 flex-col p-5">
+          <SavedRoutesDesktopBar onLoad={handleLoad} />
+          <div className="mt-3 flex-1 min-h-0 overflow-y-auto pr-1">
+            {showSummary ? summaryContent : formContent}
+          </div>
         </div>
       </aside>
 
-      {/* Mobile sheet (hidden >=md) */}
-      <div className="md:hidden">
-        <RouteSheet expanded={expanded} onToggle={() => setExpanded((e) => !e)}>
-          {showSummary ? summaryContent : formContent}
-        </RouteSheet>
+      {/* Right column: the map. On mobile this is the whole screen. */}
+      <div className="relative h-full min-h-0">
+        <div className="absolute inset-0">
+          <MapView
+            apiKey={apiKey}
+            polyline={optimized?.polyline}
+            onLoadError={() => setMapsLoadFailed(true)}
+          />
+        </div>
+
+        {/* Mobile-only: hamburger for saved routes, top-left of map */}
+        <div className="md:hidden">
+          <SavedRoutesMenu onLoad={handleLoad} />
+        </div>
+
+        {/* Mobile-only: bottom sheet */}
+        <div className="md:hidden">
+          <RouteSheet expanded={expanded} onToggle={() => setExpanded((e) => !e)}>
+            {showSummary ? summaryContent : formContent}
+          </RouteSheet>
+        </div>
       </div>
     </main>
+  );
+}
+
+/** Desktop-only top bar inside the panel — small "Saved routes" button. */
+function SavedRoutesDesktopBar({ onLoad }: { onLoad: (r: SavedRoute) => void }) {
+  return (
+    <div className="relative">
+      <SavedRoutesMenu onLoad={onLoad} />
+    </div>
   );
 }

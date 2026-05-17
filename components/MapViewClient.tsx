@@ -2,12 +2,13 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   MapContainer,
   Marker,
   Polyline,
   TileLayer,
+  ZoomControl,
   useMap,
 } from "react-leaflet";
 
@@ -23,10 +24,6 @@ type Props = {
   polyline?: [number, number][];
 };
 
-/**
- * Inner client-only component. Renders an OSM-backed Leaflet map with the
- * ORS-derived polyline (when present) and custom S/E markers.
- */
 export default function MapViewClient({ polyline }: Props) {
   const markers = useMemo(() => deriveMarkers(polyline ?? []), [polyline]);
 
@@ -35,12 +32,14 @@ export default function MapViewClient({ polyline }: Props) {
       center={DEFAULT_CENTER}
       zoom={DEFAULT_ZOOM}
       scrollWheelZoom
-      zoomControl
+      zoomControl={false}
       attributionControl
-      className="h-full w-full bg-slate-950"
-      style={{ background: "#020617" }}
+      className="h-full w-full"
+      style={{ height: "100%", width: "100%", background: "#020617" }}
     >
       <TileLayer url={CARTO_DARK_TILES} attribution={CARTO_ATTRIBUTION} />
+      <ZoomControl position="topright" />
+      <InvalidateOnResize />
       {polyline && polyline.length >= 2 && (
         <>
           <Polyline
@@ -55,6 +54,39 @@ export default function MapViewClient({ polyline }: Props) {
       ))}
     </MapContainer>
   );
+}
+
+/**
+ * Forces Leaflet to recompute its container size on mount and whenever the
+ * outer container resizes. Without this, dynamic-imported maps in flex/grid
+ * parents render at near-zero size and tile across the entire viewport.
+ */
+function InvalidateOnResize() {
+  const map = useMap();
+  const observerRef = useRef<ResizeObserver | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // First pass after mount — runs on next animation frame so the parent has laid out.
+    const raf = requestAnimationFrame(() => {
+      map.invalidateSize();
+    });
+    // Subsequent passes on any container resize.
+    const container = map.getContainer();
+    if ("ResizeObserver" in window) {
+      observerRef.current = new ResizeObserver(() => {
+        map.invalidateSize();
+      });
+      observerRef.current.observe(container);
+    }
+    return () => {
+      cancelAnimationFrame(raf);
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+    };
+  }, [map]);
+
+  return null;
 }
 
 function FitBounds({ positions }: { positions: [number, number][] }) {
@@ -91,14 +123,6 @@ type DerivedMarker = {
   icon: L.DivIcon;
 };
 
-/**
- * Derive Start / End markers from the polyline. The ORS polyline contains
- * far more points than just the waypoints (it follows roads), so we mark the
- * first point as Start and the last as End. Stop pins (1..N) are not rendered
- * from the polyline alone — they'd need the original geocoded coords. For v2
- * we keep just the S/E pins; the stop list in RouteSummary is the source of
- * truth for the visit order.
- */
 function deriveMarkers(positions: [number, number][]): DerivedMarker[] {
   if (positions.length < 2) return [];
   return [
