@@ -163,7 +163,7 @@ export default function Page() {
       const cleanInputs: RouteInputs = { start, end, stops: v.cleanedWaypoints };
       const result = useMock
         ? mockOptimizeRoute(cleanInputs)
-        : await optimizeRoute(cleanInputs);
+        : await optimizeRoute(cleanInputs, apiKey ?? "");
       dispatch({ type: "optimize_success", result });
       setExpanded(false);
       toast.show({

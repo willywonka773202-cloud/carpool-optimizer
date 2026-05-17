@@ -55,4 +55,13 @@ describe("module boundaries", () => {
     expect(src).not.toMatch(/google\.maps/);
     expect(src).not.toMatch(/from\s+["']\.\/(?:mock)?[Oo]ptimizeRoute["']/);
   });
+
+  it("ORS helpers never import map UI", () => {
+    for (const f of ["lib/orsGeocode.ts", "lib/orsOptimize.ts", "lib/orsDirections.ts"]) {
+      const src = read(f);
+      expect(src, `${f} should not import react-leaflet`).not.toMatch(/react-leaflet/);
+      expect(src, `${f} should not import leaflet`).not.toMatch(/from\s+["']leaflet["']/);
+      expect(src, `${f} should not import @react-google-maps/api`).not.toMatch(/@react-google-maps\/api/);
+    }
+  });
 });
