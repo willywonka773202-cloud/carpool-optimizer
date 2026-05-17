@@ -13,7 +13,6 @@ export function RouteSheet({
 }) {
   return (
     <section
-      aria-expanded={expanded}
       className={`fixed inset-x-0 bottom-0 z-10 rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl transition-[max-height] duration-200 ease-out ${
         expanded ? "max-h-[80vh]" : "max-h-[36vh]"
       }`}

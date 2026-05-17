@@ -34,6 +34,7 @@ export function WaypointList({
             </span>
             <input
               type="text"
+              aria-label={`Stop ${i + 1} address`}
               value={wp}
               disabled={disabled}
               placeholder={`Stop ${i + 1}`}

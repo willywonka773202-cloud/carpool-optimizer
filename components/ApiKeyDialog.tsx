@@ -4,10 +4,11 @@ import { Key } from "lucide-react";
 import { useState } from "react";
 import { clearDevApiKey, writeDevApiKey } from "@/lib/googleMaps";
 
+const DIALOG_ENABLED = process.env.NEXT_PUBLIC_ENABLE_API_KEY_DIALOG === "true";
+
 export function ApiKeyDialog({ onSaved }: { onSaved: () => void }) {
   const [value, setValue] = useState("");
-  const enabled = process.env.NEXT_PUBLIC_ENABLE_API_KEY_DIALOG === "true";
-  if (!enabled) return null;
+  if (!DIALOG_ENABLED) return null;
 
   return (
     <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -19,6 +20,7 @@ export function ApiKeyDialog({ onSaved }: { onSaved: () => void }) {
       </p>
       <div className="flex gap-2">
         <input
+          aria-label="Google Maps API key"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="AIza..."
