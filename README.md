@@ -1,55 +1,61 @@
 # Carpool Optimizer
 
-A premium, mobile-first carpool drop-off optimizer. Drivers enter a start, an end, and a list of rider drop-offs; the app calls Google's `DirectionsService` with `optimizeWaypoints: true` to reorder the stops for the fastest route, renders the result on a Google Map, and hands off to native Google Maps for turn-by-turn navigation.
+A premium, mobile-first carpool drop-off optimizer. Drivers enter a start, an end, and a list of rider drop-offs; the app geocodes each address with OpenRouteService, solves the optimal stop order with the ORS Optimization API, renders the route on a Leaflet/OpenStreetMap map — then **hands off to native Google Maps** for turn-by-turn navigation. The handoff URL is built locally and does **not** require a Google Maps API key.
 
-Built with Next.js 15, React 19, TypeScript, Tailwind, and `@react-google-maps/api`.
+Built with Next.js 15, React 19, TypeScript, Tailwind, react-leaflet, and the OpenRouteService API.
 
-## What's new in v2
+## Why this stack
 
-- **Premium dark UI** — Apple-Maps-style polish with deep slate gradients, glass surfaces, and consistent motion.
-- **Toasts** for save, load, optimize success/failure, and clear actions.
-- **Waypoint controls** — reorder up/down, duplicate, remove with 5-second undo, optional rider names per stop.
-- **Lifecycle state machine** — explicit `editing → optimizing → optimized` phases with clean error recovery.
-- **Saved-route management** — inline rename, polished empty state, relative timestamps, ETA/distance/source persisted with the route.
-- **Desktop split layout** — fixed left control panel on `md+` screens; bottom sheet on mobile.
-- **Mode badges** — Live, Demo, and Map error states are explicit and obvious.
-- **PWA polish** — manifest, dynamic favicon, Apple touch icon, theme color, "Add to Home Screen" support.
-- **Better formatting** — distance in ft below 0.1 mi and mi above; ETA in `min` / `h min`.
-- **Boundary-tested architecture** — real and mock optimizer paths are isolated by automated tests.
+| Concern | Stack |
+|---|---|
+| Map UI | **Leaflet + react-leaflet** with **OpenStreetMap** tiles (CARTO Dark Matter) — no key required for tiles |
+| Geocoding | **OpenRouteService** `/geocode/search` |
+| Optimization | **OpenRouteService** `/optimization` (Vroom-based VRP solver) |
+| Polyline | **OpenRouteService** `/v2/directions/driving-car/geojson` |
+| Native navigation | **Google Maps deep link** (no API key needed — just a URL) |
 
 ## Quick start
 
 ```bash
 npm install
 cp .env.example .env.local
-# add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=...
+# add NEXT_PUBLIC_OPENROUTESERVICE_API_KEY=...
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-If no API key is present, the app runs in **demo mode** with a deterministic placeholder optimizer and no real map rendering. Every other feature works.
+If no API key is present, the app runs in **demo mode** with a deterministic placeholder optimizer and a designed map illustration. Every other feature works — including the Google Maps handoff URL.
 
-## Google Cloud setup
+## OpenRouteService setup
 
-1. Create a project at [console.cloud.google.com](https://console.cloud.google.com).
-2. **APIs & Services → Library**, enable:
-   - **Maps JavaScript API**
-   - **Directions API**
-3. **APIs & Services → Credentials → Create credentials → API key**.
-4. **Restrict the key** (do not skip):
-   - **Application restrictions → HTTP referrers**: add `http://localhost:3000/*` and your production host (e.g. `https://<project>.vercel.app/*`).
-   - **API restrictions → Restrict key**: select **Maps JavaScript API** and **Directions API** only.
-5. Enable a billing account (Google requires it for the JS API even on free tier).
+1. Sign up for a free dev account at [openrouteservice.org/dev/#/signup](https://openrouteservice.org/dev/#/signup).
+2. Create a new token under **Dashboard → Tokens**.
+3. Copy the token and put it in `.env.local` as `NEXT_PUBLIC_OPENROUTESERVICE_API_KEY=...`.
+4. The free tier includes:
+   - 2,000 geocoding requests / day (40 / minute)
+   - 500 optimization requests / day (40 / minute)
+   - 2,000 directions requests / day (40 / minute)
+   For a single driver doing a few carpool runs a day, this is generous.
+
+## How a single optimization call works (live mode)
+
+1. **Geocode** start, end, and every drop-off address in parallel → `[lat, lng]` for each.
+2. **Optimize** — POST the stops + start/end to ORS Optimization (one vehicle, N jobs). ORS returns the visit order.
+3. **Directions** — POST the start + optimized stops + end to ORS Directions. ORS returns the road polyline and total time/distance.
+4. **Render** the polyline on Leaflet with custom S/E markers and an autofit-bounds animation.
+5. **Build the Google Maps handoff URL** from the optimized address order. The user clicks **Open Optimized Route in Google Maps** and the native Maps app takes over from there.
+
+The Google Maps URL is constructed locally as a deep link and uses no Google APIs — see `lib/handoffUrl.ts`.
 
 ## Environment variables
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Production API key. Required for live optimization. |
-| `NEXT_PUBLIC_ENABLE_API_KEY_DIALOG` | Set to `"true"` on Preview/staging deploys to expose a paste-key dialog. **Never set in Production.** |
+| `NEXT_PUBLIC_OPENROUTESERVICE_API_KEY` | Required for live mode (geocoding + optimization + directions). |
+| `NEXT_PUBLIC_ENABLE_API_KEY_DIALOG` | Set to `"true"` on Preview/staging to expose a paste-key dialog behind the settings gear. **Never set in Production.** |
 
-`NEXT_PUBLIC_*` vars are inlined into the client bundle and visible to anyone who loads the page. That is expected for a Google Maps key — the HTTP referrer restriction (above) is what prevents abuse, not secrecy.
+`NEXT_PUBLIC_*` vars are inlined into the client bundle and visible to anyone who loads the page — that's expected for the ORS public token. ORS keys are bound to your account and rate-limited; restrict usage in your ORS dashboard if needed.
 
 ## Scripts
 
@@ -58,40 +64,29 @@ If no API key is present, the app runs in **demo mode** with a deterministic pla
 | `npm run dev` | Local dev at http://localhost:3000 |
 | `npm run build` | Production build |
 | `npm run typecheck` | TypeScript check, no emit |
-| `npm run lint` | Next.js ESLint |
+| `npm run lint` | ESLint |
 | `npm test` | Vitest unit tests (one-shot) |
 | `npm run test:watch` | Vitest watch mode |
 
 ## Testing
 
-Pure helpers live in `lib/` and are unit-tested with Vitest. The full suite runs in under three seconds. Coverage:
+Pure helpers are unit-tested with Vitest. No live network calls — fetch is dependency-injected and tests use fake response objects.
 
-- `validation.test.ts` — start/end blank, zero stops, blank rows, valid input, error-message precedence
-- `routeUrl.test.ts` — encoding, zero waypoints, special characters, whitespace trimming
-- `mockOptimizeRoute.test.ts` — determinism, stop preservation, `source: "mock"`
-- `storage.test.ts` — save/list/delete, rename, update with `updatedAt`, riderNames length alignment, forbidden-field rejection, corrupt-entry recovery
-- `googleMaps.test.ts` — env-key priority, flag-gated localStorage fallback, null fallback
-- `optimizeRoute.test.ts` — `waypoint_order` reordering, leg ETA/distance summation
-- `format.test.ts` — ETA / distance formatters incl. edge cases
-- `waypointOps.test.ts` — move-up, move-down, duplicate, remove
-- `boundaries.test.ts` — real/mock optimizer separation, storage forbidden fields, new lib files purity
+| File | What it covers |
+|---|---|
+| `validation.test.ts` | Start/end blank, zero stops, blank rows, valid input, message ordering |
+| `routeUrl.test.ts` | Google Maps URL encoding, zero waypoints, special characters |
+| `handoffUrl.test.ts` | Optimized-order guarantee, no input-order leakage, single source of truth |
+| `mockOptimizeRoute.test.ts` | Determinism, stop preservation, `source: 'mock'` |
+| `storage.test.ts` | Save/list/delete/rename, riderNames alignment, forbidden-field rejection |
+| `orsKey.test.ts` | API key priority (env → localStorage → null) |
+| `orsHelpers.test.ts` | Geocoding + optimization order extraction + directions polyline parsing + HTTP 401/403 + incomplete-solution detection |
+| `optimizeRoute.test.ts` | `composeOptimization` orchestration with stub deps, skip-optimize edge cases |
+| `format.test.ts` | ETA + distance formatters |
+| `waypointOps.test.ts` | move-up / move-down / duplicate / remove |
+| `boundaries.test.ts` | Real/mock separation, storage forbidden-field discipline, ORS helpers never import map UI |
 
-Total: **66 tests**.
-
-There are no integration tests against the live Google API; the production optimizer's pure transformation is tested with hand-crafted `DirectionsResult` fixtures. Component-level tests are intentionally deferred — see "Known limitations".
-
-## Deploy to Vercel
-
-1. Push to GitHub.
-2. In Vercel: **Add New → Project → Import** the repo.
-3. **Framework Preset:** Next.js (auto).
-4. Environment variables (Production):
-   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` — your restricted key.
-   - Leave `NEXT_PUBLIC_ENABLE_API_KEY_DIALOG` unset.
-5. Deploy.
-6. Copy the production URL and add `https://<project>.vercel.app/*` to the HTTP referrer restrictions on your Google Maps key in Google Cloud Console.
-
-Every push to `main` and every PR runs the CI matrix (`typecheck → lint → test → build`) defined in `.github/workflows/ci.yml`.
+Total: **84 tests**.
 
 ## Architecture
 
@@ -99,79 +94,99 @@ Every push to `main` and every PR runs the CI matrix (`typecheck → lint → te
 app/
   layout.tsx       # ToastProvider wrapper, viewport, theme-color, manifest link
   page.tsx         # lifecycle reducer, mode resolution, desktop split / mobile sheet
-  icon.tsx         # dynamic 32×32 favicon
-  apple-icon.tsx   # dynamic 180×180 Apple touch icon
+  icon.tsx         # dynamic 32x32 favicon
+  apple-icon.tsx   # dynamic 180x180 Apple touch icon
   globals.css      # theme tokens, safe-area helpers, skeleton + rise animations
 components/
   ui/Button.tsx    # primary | secondary | ghost | success | danger
   ui/Badge.tsx     # live | demo | neutral | error
   ui/Card.tsx      # rounded surface
-  MapView.tsx      # SSR-safe Google map with dark styling + premium empty states
-  RouteSheet.tsx   # non-draggable bottom sheet, two states
-  RouteSummary.tsx # ETA/distance/stops, ordered list, Open in Maps, Copy, Save
-  WaypointList.tsx # add/remove/reorder/duplicate, undo, optional rider names
-  LocationInput.tsx# labeled input with clear button
-  SavedRoutesMenu.tsx # rename inline, delete, relative timestamps
-  ApiKeyDialog.tsx # flag-gated; shows "Detected/Not set"
-  ErrorAlert.tsx   # error | warn | info, optional dismiss
-  Toast.tsx        # ToastProvider + useToast hook, success | error | info
+  MapView.tsx          # SSR-safe wrapper: shows DemoMapPreview when no key, else lazy-loads MapViewClient
+  MapViewClient.tsx    # react-leaflet + OSM dark tiles + ORS polyline + S/E divIcon markers
+  DemoMapPreview.tsx   # designed SVG illustration for demo/no-key mode
+  RouteSheet.tsx       # non-draggable bottom sheet, two states
+  RouteSummary.tsx     # ETA/distance/stops, ordered list, BIG green Open in Maps CTA (sticky)
+  WaypointList.tsx     # add/remove/reorder/duplicate, undo, optional rider names
+  LocationInput.tsx    # labeled input with clear button
+  SavedRoutesMenu.tsx  # rename inline, delete, relative timestamps
+  ApiKeyDialog.tsx     # flag-gated; shows "Detected/Not set"
+  SettingsMenu.tsx     # gear icon in header that wraps ApiKeyDialog
+  ErrorAlert.tsx       # error | warn | info, optional dismiss
+  Toast.tsx            # ToastProvider + useToast hook
 lib/
-  optimizeRoute.ts    # real Google DirectionsService — never imports mock
-  mockOptimizeRoute.ts# deterministic preview fallback — never imports Google
-  routeUrl.ts         # google.com/maps/dir/?api=1 deep link
-  validation.ts       # input validator
-  storage.ts          # localStorage saved routes, rename + updatedAt + riderNames
-  googleMaps.ts       # API key resolution
-  format.ts           # ETA + distance formatters
-  waypointOps.ts      # pure array reorder/duplicate/remove
-  types.ts            # RouteInputs, OptimizedRoute, SavedRoute, OptimizationMode
-__tests__/            # 66 unit tests + boundary contract
+  optimizeRoute.ts     # composeOptimization (testable) + optimizeRoute (live, needs ORS key)
+  mockOptimizeRoute.ts # deterministic preview fallback — never imports network or map UI
+  orsGeocode.ts        # ORS geocoding, injectable fetch
+  orsOptimize.ts       # ORS optimization (VRP), pure extractJobOrder + solveStopOrder
+  orsDirections.ts     # ORS directions, pure extractDirections + fetchDirections
+  orsKey.ts            # API key resolution (env first, flag-gated localStorage second)
+  orsTypes.ts          # Coord, RoutePolyline shared types
+  routeUrl.ts          # google.com/maps/dir/?api=1 deep link builder
+  handoffUrl.ts        # typed wrapper that requires an OptimizedRoute (can't be misused)
+  validation.ts        # input validator
+  storage.ts           # localStorage saved routes, rename + updatedAt + riderNames
+  format.ts            # ETA + distance formatters
+  waypointOps.ts       # pure array reorder / duplicate / remove
+  types.ts             # RouteInputs, OptimizedRoute, SavedRoute, OptimizationMode
+__tests__/             # 84 unit tests + boundary contract
 ```
 
 **Boundary rules (enforced by `__tests__/boundaries.test.ts`):**
-- `lib/optimizeRoute.ts` is the only file that talks to `DirectionsService`. It never imports the mock.
-- `lib/mockOptimizeRoute.ts` is the deterministic fallback. It never imports the Google SDK.
-- The two paths meet exactly once — in `app/page.tsx` — via a `useMock` boolean derived from API-key presence and Maps load status.
-- `lib/storage.ts` reads/writes only route data. It throws if you pass it an `apiKey` or `directionsResult` field.
+- `lib/optimizeRoute.ts` is the only file that talks to ORS endpoints (via the three `ors*` helpers).
+- `lib/mockOptimizeRoute.ts` is the deterministic fallback. It never imports network, ORS, leaflet, or any map UI.
+- The two paths meet exactly once — in `app/page.tsx` — via a `useMock` boolean derived from API-key presence.
+- `lib/storage.ts` reads/writes only route data. It throws on `apiKey` / `directionsResult` fields.
+- `lib/handoffUrl.ts` is pure URL string construction; it never touches map libraries.
 
 ## Security
 
-- **API keys** are never written to the saved-routes namespace. The optional dev paste dialog writes to a separate key (`carpool.devApiKey`) that the saved-routes code cannot read or write.
-- **Saved routes** store only `{id, label, start, end, stops, createdAt, updatedAt?, riderNames?, etaSeconds?, distanceMeters?, source?}`. Raw `DirectionsResult` is never persisted.
-- **Restrict your Google Maps key** by HTTP referrer. Without restrictions, a public key can be lifted and used to drain your billing quota.
-- The repo never commits a real key. `.env.local` is gitignored. CI builds with no key (the app falls back to demo mode in tests).
+- **ORS API keys** are never written to the saved-routes namespace. The optional dev paste dialog writes to a separate key (`carpool.devOrsKey`) that the saved-routes code cannot read or write.
+- **Saved routes** store only `{id, label, start, end, stops, createdAt, updatedAt?, riderNames?, etaSeconds?, distanceMeters?, source?}`. The full ORS response is never persisted.
+- The repo never commits an API key. `.env.local` is gitignored. CI builds with no key (the app falls back to demo mode in tests).
+- `NEXT_PUBLIC_*` keys are visible client-side — that's a property of the env-var prefix, not a leak. Restrict your ORS key by domain in the ORS dashboard for production use.
 
 ## Mode behavior
 
 | Mode | When | What you see |
 |---|---|---|
-| **Live** | Env key present and Maps script loaded | Emerald badge, real map, real DirectionsService optimization |
-| **Demo** | No env key (and no dev paste key) | Amber badge, demo placeholder map, deterministic mock optimizer |
-| **Map error** | Maps script failed to load (bad key, network) | Red badge, fallback to mock optimizer with a banner |
+| **Live** | ORS env key present | Emerald badge, OSM map with the real ORS route polyline, live ETA/distance |
+| **Demo** | No ORS env key (and no dev paste key) | Amber badge, designed demo map preview, deterministic mock optimizer |
+| **Map error** | (Reserved) | Red badge, fallback to demo |
 
-The handoff URL to native Google Maps is built locally from the optimized order in all three modes — it works without an API key.
+The handoff URL to native Google Maps is built locally from the optimized order in all modes — it works without any API key (Google or ORS).
 
-## Known limitations (v2)
+## Deploy to Vercel
 
-- Single driver only — no multi-driver coordination or rider-to-driver assignment.
-- No Places Autocomplete — drivers type full addresses by hand.
+1. Push to GitHub.
+2. In Vercel: **Add New → Project → Import** the repo.
+3. **Framework Preset:** Next.js (auto).
+4. Environment variables (Production):
+   - `NEXT_PUBLIC_OPENROUTESERVICE_API_KEY` — your ORS token.
+   - Leave `NEXT_PUBLIC_ENABLE_API_KEY_DIALOG` unset.
+5. Deploy.
+6. (Optional) restrict the ORS token in the ORS dashboard to your production origin.
+
+CI (`.github/workflows/ci.yml`) runs `typecheck → lint → test → build` on every push and PR.
+
+## Known limitations
+
+- Single driver only — no multi-driver coordination.
+- No Places-style autocomplete (ORS has a `/autocomplete` endpoint that could be wired in v3).
 - No browser-geolocation "use my current location" button.
-- Bottom sheet is non-draggable (two states toggled by chevron). Drag conflicts with mobile keyboards and map gestures.
-- Mock optimizer's ordering is a length-based heuristic, not a real solution.
-- Component-level React tests are not in v1/v2; pure logic is tested instead.
-- PWA icons are dynamic 32×32 / 180×180. For full app-store-grade installability, ship 192×192 and 512×512 PNGs in `public/icons/` and reference them in `public/manifest.webmanifest`.
-- npm-audit shows two moderate advisories for vendored PostCSS inside Next.js internals — both are false positives (the suggested "fix" downgrades Next.js to 9.x).
+- Bottom sheet is non-draggable (two states toggled by chevron).
+- Mock optimizer's ordering is a length-based heuristic (only used when no API key is set).
+- No React component-level tests; pure logic only.
 
 ## Future improvements
 
-- Places Autocomplete on address inputs.
+- ORS autocomplete on address inputs.
 - Browser geolocation for the start address.
-- Drag-to-reorder waypoints (currently up/down buttons).
+- Drag-to-reorder waypoints.
 - Route sharing across devices (would need a backend).
 - Multi-driver assignment.
-- Recurring carpools.
-- Real PWA app icons in multiple sizes.
+- Map controls overlay (recenter, fit-to-route).
+- Stop markers (1..N) at geocoded coordinates, not just S/E.
 
 ## Repo metadata
 
-The full v2 design notes are at [docs/superpowers/specs/2026-05-16-v2-premium-design.md](docs/superpowers/specs/2026-05-16-v2-premium-design.md). The v1 spec + plan are alongside it.
+The full v2 design notes are at `docs/superpowers/specs/2026-05-16-v2-premium-design.md`. The v1 spec + plan are alongside it.
