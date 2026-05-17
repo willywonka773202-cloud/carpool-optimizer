@@ -43,4 +43,12 @@ describe("module boundaries", () => {
     expect(src).not.toMatch(/google\.maps/);
     expect(src).not.toMatch(/from\s+["']\.\/(?:mock)?[Oo]ptimizeRoute["']/);
   });
+
+  it("handoffUrl.ts is pure (no google, no optimizer imports)", () => {
+    const src = read("lib/handoffUrl.ts");
+    expect(src).not.toMatch(/@react-google-maps\/api/);
+    expect(src).not.toMatch(/google\.maps/);
+    // It can import OptimizedRoute (a type) but not the optimizer modules themselves
+    expect(src).not.toMatch(/from\s+["']\.\/(?:mock)?[Oo]ptimizeRoute["']/);
+  });
 });
