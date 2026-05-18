@@ -2,7 +2,7 @@ import type { Coord } from "./orsTypes";
 
 export type OptimizeFetch = typeof fetch;
 
-const OPTIMIZATION_URL = "https://api.openrouteservice.org/optimization";
+const OPTIMIZATION_URL = "/api/ors/optimization";
 
 type OrsOptimizationResponse = {
   routes?: Array<{

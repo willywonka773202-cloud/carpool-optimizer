@@ -1,6 +1,6 @@
 import type { Coord } from "./orsTypes";
 
-const AUTOCOMPLETE_URL = "https://api.openrouteservice.org/geocode/autocomplete";
+const AUTOCOMPLETE_URL = "/api/ors/geocode/autocomplete";
 
 export type Suggestion = {
   label: string;

@@ -2,7 +2,7 @@ import type { Coord } from "./orsTypes";
 
 export type GeocodeFetch = typeof fetch;
 
-const GEOCODE_URL = "https://api.openrouteservice.org/geocode/search";
+const GEOCODE_URL = "/api/ors/geocode/search";
 
 export async function geocodeAddress(
   address: string,

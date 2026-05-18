@@ -2,8 +2,7 @@ import type { Coord, RoutePolyline } from "./orsTypes";
 
 export type DirectionsFetch = typeof fetch;
 
-const DIRECTIONS_URL =
-  "https://api.openrouteservice.org/v2/directions/driving-car/geojson";
+const DIRECTIONS_URL = "/api/ors/v2/directions/driving-car/geojson";
 
 type OrsDirectionsResponse = {
   features?: Array<{
