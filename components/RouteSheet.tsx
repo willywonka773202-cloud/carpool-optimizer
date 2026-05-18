@@ -14,7 +14,7 @@ export function RouteSheet({
   return (
     <section
       className={
-        "fixed inset-x-0 bottom-0 z-10 mx-auto max-w-3xl rounded-t-3xl border-t border-white/10 " +
+        "fixed inset-x-0 bottom-0 z-[1001] mx-auto max-w-3xl rounded-t-3xl border-t border-white/10 " +
         "bg-slate-900/85 shadow-sheet backdrop-blur-xl " +
         "transition-[max-height] duration-300 ease-out-quint " +
         (expanded ? "max-h-[82vh]" : "max-h-[34vh]")

@@ -407,7 +407,7 @@ export default function Page() {
 
       {/* Right column: the map. On mobile this is the whole screen. */}
       <div className="relative h-full min-h-0">
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 isolate">
           <MapView
             apiKey={apiKey}
             polyline={optimized?.polyline}
