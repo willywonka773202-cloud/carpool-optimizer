@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useReducer, useState } from "react";
-import { ArrowDownUp, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowDownUp, RotateCcw, Share2, Sparkles } from "lucide-react";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { LocationInput } from "@/components/LocationInput";
 import { UseLocationButton } from "@/components/UseLocationButton";
@@ -20,6 +20,7 @@ import { optimizeRoute } from "@/lib/optimizeRoute";
 import { mockOptimizeRoute } from "@/lib/mockOptimizeRoute";
 import { getActiveApiKey } from "@/lib/orsKey";
 import { saveRoute } from "@/lib/storage";
+import { buildShareRouteUrl, decodeSharedRoute, SHARE_ROUTE_PARAM } from "@/lib/shareRoute";
 import {
   duplicateItem,
   moveItemDown,
@@ -92,6 +93,33 @@ export default function Page() {
     setApiKey(getActiveApiKey());
   }
   useEffect(refreshApiKey, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get(SHARE_ROUTE_PARAM);
+    if (!token) return;
+
+    const shared = decodeSharedRoute(token);
+    if (!shared) {
+      toast.show({ title: "Shared route link is invalid", tone: "error" });
+      return;
+    }
+
+    const stops = shared.stops.length ? shared.stops : [""];
+    setStart(shared.start);
+    setEnd(shared.end);
+    setWaypoints(stops);
+    setRiderNames(
+      ensureRidersAlignment(stops, shared.riderNames ?? Array<string | null>(stops.length).fill(null))
+    );
+    setShowRiderNames(Boolean(shared.riderNames?.some((name) => name)));
+    setStartCoord(null);
+    dispatch({ type: "reset" });
+    setExpanded(true);
+    toast.show({ title: "Shared route loaded", tone: "success" });
+    // Run only once on first client render so later edits do not re-import the URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const mode = useMemo(() => resolveMode(apiKey, mapsLoadFailed), [apiKey, mapsLoadFailed]);
   const useMock = mode !== "live";
@@ -254,6 +282,22 @@ export default function Page() {
     toast.show({ title: "Cleared route", tone: "info" });
   }
 
+  async function handleCopyShareLink() {
+    try {
+      if (!navigator?.clipboard?.writeText) throw new Error("Clipboard API unavailable");
+      const url = buildShareRouteUrl(window.location.origin, window.location.pathname, {
+        start,
+        end,
+        stops: waypoints,
+        riderNames: showRiderNames ? riderNames : undefined,
+      });
+      await navigator.clipboard.writeText(url);
+      toast.show({ title: "Share link copied", tone: "success" });
+    } catch {
+      toast.show({ title: "Couldn't copy share link", tone: "error" });
+    }
+  }
+
   const optimized = phase.kind === "optimized" ? phase.result : null;
   const loading = phase.kind === "optimizing";
   const error = phase.kind === "editing" ? phase.error : undefined;
@@ -376,6 +420,15 @@ export default function Page() {
         </Button>
         <Button variant="ghost" size="sm" fullWidth onClick={handleReset}>
           <RotateCcw className="h-3 w-3" aria-hidden="true" /> Clear / new route
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          fullWidth
+          onClick={handleCopyShareLink}
+          disabled={loading || (!start && !end && waypoints.every((stop) => !stop.trim()))}
+        >
+          <Share2 className="h-3 w-3" aria-hidden="true" /> Copy shareable route link
         </Button>
       </div>
     </div>
