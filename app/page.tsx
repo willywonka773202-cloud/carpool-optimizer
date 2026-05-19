@@ -261,11 +261,11 @@ export default function Page() {
 
   const modeBadge =
     mode === "live" ? (
-      <Badge tone="live">Live</Badge>
+      <Badge tone="live">Live routing</Badge>
     ) : mode === "demo" ? (
       <Badge tone="demo">Demo</Badge>
     ) : (
-      <Badge tone="error">Map error</Badge>
+      <Badge tone="error">Map issue</Badge>
     );
 
   const formContent = (

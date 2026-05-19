@@ -63,8 +63,16 @@ export function RouteSummary({
             </p>
             <h2 className="text-lg font-bold text-slate-100">Ready to drive</h2>
           </div>
-          <Badge tone={optimized.source === "ors" ? "live" : "demo"}>
-            {optimized.source === "ors" ? "Live route" : "Demo route"}
+          <Badge
+            tone={
+              optimized.source === "mock" || optimized.isEstimated ? "demo" : "live"
+            }
+          >
+            {optimized.source === "mock"
+              ? "Demo route"
+              : optimized.isEstimated
+              ? "Estimated route"
+              : "Live route"}
           </Badge>
         </div>
 
@@ -123,6 +131,12 @@ export function RouteSummary({
         {optimized.source === "mock" && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-100">
             Demo mode — this is not real route optimization. Add an OpenRouteService API key for a live route.
+          </div>
+        )}
+
+        {optimized.source === "ors" && optimized.isEstimated && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-100">
+            Estimated preview — the stop order is real, but the on-map polyline and ETA fell back to a straight-line estimate because the routing provider didn&apos;t return geometry. The Google Maps handoff still opens with the optimized order.
           </div>
         )}
       </div>

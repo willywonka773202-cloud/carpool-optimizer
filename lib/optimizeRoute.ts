@@ -14,6 +14,11 @@ export type OrsDeps = {
     etaSeconds: number;
     distanceMeters: number;
     legs?: { etaSeconds: number; distanceMeters: number }[];
+    /**
+     * True when this directions result is a fallback estimate (straight-line
+     * polyline + haversine ETA) rather than the real provider's road geometry.
+     */
+    isEstimated?: boolean;
   }>;
 };
 
@@ -83,7 +88,7 @@ export async function composeOptimization(
   const orderedStops = optimizedIndexes.map((i) => inputs.stops[i]);
   const orderedCoords = optimizedIndexes.map((i) => stopCoords[i]);
 
-  const { polyline, etaSeconds, distanceMeters, legs } = await deps.directions([
+  const { polyline, etaSeconds, distanceMeters, legs, isEstimated } = await deps.directions([
     startCoord,
     ...orderedCoords,
     endCoord,
@@ -97,6 +102,7 @@ export async function composeOptimization(
     polyline,
     stopCoords: orderedCoords,
     legs,
+    ...(isEstimated ? { isEstimated: true } : {}),
   };
 }
 
@@ -132,7 +138,10 @@ export async function optimizeRoute(
         return await fetchDirections(coords, apiKey);
       } catch {
         // Fallback to straight-line polyline + haversine estimate.
-        return buildStraightLineRoute(coords[0], coords.slice(1, -1), coords[coords.length - 1]);
+        return {
+          ...buildStraightLineRoute(coords[0], coords.slice(1, -1), coords[coords.length - 1]),
+          isEstimated: true,
+        };
       }
     },
   };

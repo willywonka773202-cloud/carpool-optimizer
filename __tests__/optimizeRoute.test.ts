@@ -139,6 +139,37 @@ describe("composeOptimization", () => {
     ]);
   });
 
+  it("propagates isEstimated from directions into the OptimizedRoute", async () => {
+    const geocode = vi.fn(async () => coord(0, 0));
+    const optimize = vi.fn(async () => [0]);
+    const directions = vi.fn(async () => ({
+      polyline: [] as [number, number][],
+      etaSeconds: 0,
+      distanceMeters: 0,
+      isEstimated: true,
+    }));
+    const result = await composeOptimization(
+      { start: "H", end: "E", stops: ["A"] },
+      { geocode, optimize, directions }
+    );
+    expect(result.isEstimated).toBe(true);
+  });
+
+  it("omits isEstimated when directions does not set it (real ORS path)", async () => {
+    const geocode = vi.fn(async () => coord(0, 0));
+    const optimize = vi.fn(async () => [0]);
+    const directions = vi.fn(async () => ({
+      polyline: [] as [number, number][],
+      etaSeconds: 0,
+      distanceMeters: 0,
+    }));
+    const result = await composeOptimization(
+      { start: "H", end: "E", stops: ["A"] },
+      { geocode, optimize, directions }
+    );
+    expect(result.isEstimated).toBeUndefined();
+  });
+
   it("skips geocoding the start when startCoord is provided", async () => {
     const geocode = vi.fn(async () => coord(0, 0));
     const optimize = vi.fn(async () => [0]);

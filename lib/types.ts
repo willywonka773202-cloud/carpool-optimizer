@@ -22,6 +22,13 @@ export type OptimizedRoute = {
   etaSeconds: number;
   distanceMeters: number;
   source: "ors" | "mock";
+  /**
+   * True when the route geometry / leg numbers came from a fallback (straight-line
+   * polyline + haversine ETA) rather than the real ORS directions service. The
+   * stop order itself is still real (ORS optimization or local nearest-neighbor) —
+   * only the on-screen shape and travel-time numbers are approximate.
+   */
+  isEstimated?: boolean;
   /** Only the live ORS path populates this. Mock omits it. */
   polyline?: RoutePolyline;
   /** Optional: geocoded coords for each stop in the same order as orderedStops. Live mode populates this. */
