@@ -3,6 +3,7 @@
 import {
   Car,
   ChevronRight,
+  ClipboardList,
   Clock,
   Copy,
   MapPin,
@@ -15,6 +16,7 @@ import {
 import { useState } from "react";
 import type { OptimizedRoute, RouteLeg } from "@/lib/types";
 import { buildOptimizedHandoffUrl } from "@/lib/handoffUrl";
+import { buildRouteItineraryText } from "@/lib/itinerary";
 import { formatDistance, formatEta } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -35,7 +37,9 @@ export function RouteSummary({
   onSave: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [itineraryCopied, setItineraryCopied] = useState(false);
   const [copyFallbackVisible, setCopyFallbackVisible] = useState(false);
+  const [copyFallbackText, setCopyFallbackText] = useState("");
   const url = buildOptimizedHandoffUrl(start, end, optimized);
   const legs: RouteLeg[] | undefined = optimized.legs;
   const totalStops = optimized.orderedStops.length;
@@ -56,9 +60,33 @@ export function RouteSummary({
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setCopyFallbackVisible(false);
+      setCopyFallbackText("");
       setTimeout(() => setCopied(false), 1500);
     } catch {
       setCopied(false);
+      setCopyFallbackText(url);
+      setCopyFallbackVisible(true);
+    }
+  }
+
+  async function copyItinerary() {
+    const text = buildRouteItineraryText({
+      start,
+      end,
+      optimized,
+      riderNames,
+      mapsUrl: url,
+    });
+    try {
+      if (!navigator?.clipboard?.writeText) throw new Error("Clipboard API unavailable");
+      await navigator.clipboard.writeText(text);
+      setItineraryCopied(true);
+      setCopyFallbackVisible(false);
+      setCopyFallbackText("");
+      setTimeout(() => setItineraryCopied(false), 1500);
+    } catch {
+      setItineraryCopied(false);
+      setCopyFallbackText(text);
       setCopyFallbackVisible(true);
     }
   }
@@ -151,7 +179,7 @@ export function RouteSummary({
             </p>
             <textarea
               readOnly
-              value={url}
+              value={copyFallbackText}
               onFocus={(e) => e.currentTarget.select()}
               className="h-20 w-full resize-none rounded-lg border border-white/10 bg-slate-950/60 p-2 text-xs text-slate-200 outline-none focus:border-blue-400"
             />
@@ -173,10 +201,14 @@ export function RouteSummary({
             Open in Google Maps
           </Button>
         </a>
-        <div className="mt-2 grid grid-cols-3 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Button variant="secondary" size="sm" fullWidth onClick={copy}>
             <Copy className="h-3.5 w-3.5" aria-hidden="true" />
             {copied ? "Copied!" : "Copy link"}
+          </Button>
+          <Button variant="secondary" size="sm" fullWidth onClick={copyItinerary}>
+            <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+            {itineraryCopied ? "Copied!" : "Itinerary"}
           </Button>
           <Button variant="secondary" size="sm" fullWidth onClick={onSave}>
             <Save className="h-3.5 w-3.5" aria-hidden="true" />
