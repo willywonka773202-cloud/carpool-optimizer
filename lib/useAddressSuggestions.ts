@@ -11,22 +11,20 @@ export function useAddressSuggestions(
 ): { suggestions: Suggestion[]; loading: boolean } {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
-    abortRef.current?.abort();
-    if (!apiKey || text.trim().length < 3) {
+    const requestId = ++requestIdRef.current;
+    if (text.trim().length < 3) {
       setSuggestions([]);
       setLoading(false);
       return;
     }
 
-    const controller = new AbortController();
-    abortRef.current = controller;
     const handle = setTimeout(async () => {
       setLoading(true);
-      const results = await searchAutocomplete(text, apiKey, 5, fetch, controller.signal);
-      if (!controller.signal.aborted) {
+      const results = await searchAutocomplete(text, apiKey, 5, fetch);
+      if (requestIdRef.current === requestId) {
         setSuggestions(results);
         setLoading(false);
       }
@@ -34,7 +32,6 @@ export function useAddressSuggestions(
 
     return () => {
       clearTimeout(handle);
-      controller.abort();
     };
   }, [text, apiKey]);
 

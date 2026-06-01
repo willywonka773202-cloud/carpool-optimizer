@@ -16,6 +16,27 @@ describe("searchAutocomplete", () => {
     expect(out).toEqual([]);
   });
 
+  it("uses the no-key fallback suggestions endpoint when apiKey is null", async () => {
+    const fakeFetch = vi.fn(async () =>
+      mockResponse({
+        features: [
+          {
+            properties: { label: "100 Main St, Chicago, Illinois, USA" },
+            geometry: { coordinates: [-87.62, 41.88] },
+          },
+        ],
+      })
+    ) as unknown as typeof fetch;
+
+    const out = await searchAutocomplete("main st", null, 3, fakeFetch);
+    expect(out).toEqual([
+      { label: "100 Main St, Chicago, Illinois, USA", coord: { lat: 41.88, lng: -87.62 } },
+    ]);
+    expect(vi.mocked(fakeFetch).mock.calls[0][0]).toBe(
+      "/api/address-suggestions?text=main%20st&size=3"
+    );
+  });
+
   it("converts feature labels and [lng, lat] to Suggestion shape", async () => {
     const fakeFetch = vi.fn(async () =>
       mockResponse({

@@ -1,4 +1,4 @@
-import type { OptimizedRoute, RouteInputs } from "./types";
+import type { OptimizedRoute, RouteInputs, RoutePreferences } from "./types";
 import { geocodeAddress } from "./orsGeocode";
 import { solveStopOrder } from "./orsOptimize";
 import { fetchDirections } from "./orsDirections";
@@ -9,7 +9,7 @@ import type { Coord } from "./orsTypes";
 export type OrsDeps = {
   geocode: (address: string) => Promise<Coord>;
   optimize: (start: Coord, end: Coord, stops: Coord[]) => Promise<number[]>;
-  directions: (coordsInOrder: Coord[]) => Promise<{
+  directions: (coordsInOrder: Coord[], preferences?: RoutePreferences) => Promise<{
     polyline: [number, number][];
     etaSeconds: number;
     distanceMeters: number;
@@ -20,6 +20,7 @@ export type OrsDeps = {
 export type ComposeOptions = {
   /** If provided, skip geocoding the start address and use this coord directly. */
   startCoord?: Coord;
+  routePreferences?: RoutePreferences;
 };
 
 /**
@@ -83,11 +84,10 @@ export async function composeOptimization(
   const orderedStops = optimizedIndexes.map((i) => inputs.stops[i]);
   const orderedCoords = optimizedIndexes.map((i) => stopCoords[i]);
 
-  const { polyline, etaSeconds, distanceMeters, legs } = await deps.directions([
-    startCoord,
-    ...orderedCoords,
-    endCoord,
-  ]);
+  const { polyline, etaSeconds, distanceMeters, legs } = await deps.directions(
+    [startCoord, ...orderedCoords, endCoord],
+    options.routePreferences
+  );
 
   return {
     orderedStops,
@@ -127,9 +127,9 @@ export async function optimizeRoute(
         return nearestNeighborOrder(s, st, e);
       }
     },
-    directions: async (coords) => {
+    directions: async (coords, preferences) => {
       try {
-        return await fetchDirections(coords, apiKey);
+        return await fetchDirections(coords, apiKey, preferences);
       } catch {
         // Fallback to straight-line polyline + haversine estimate.
         return buildStraightLineRoute(coords[0], coords.slice(1, -1), coords[coords.length - 1]);

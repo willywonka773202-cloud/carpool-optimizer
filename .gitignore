@@ -10,3 +10,5 @@ tsconfig.tsbuildinfo
 .vercel/
 out/
 dist/
+.automation/
+.vercel

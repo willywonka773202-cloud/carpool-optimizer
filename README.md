@@ -20,12 +20,24 @@ Built with Next.js 15, React 19, TypeScript, Tailwind, react-leaflet, and the Op
 npm install
 cp .env.example .env.local
 # add NEXT_PUBLIC_OPENROUTESERVICE_API_KEY=...
-npm run dev
+npm run dev:local
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
-If no API key is present, the app runs in **demo mode** with a deterministic placeholder optimizer and a designed map illustration. Every other feature works — including the Google Maps handoff URL.
+On macOS you can also double-click [`/Users/willlambert/Documents/Carpool/Open Carpool.command`](/Users/willlambert/Documents/Carpool/Open%20Carpool.command). It installs dependencies if needed, starts the local dev server, and opens the app in your browser.
+
+If no API key is present, the app runs in **demo mode** with a deterministic placeholder optimizer. Every other feature works — including the Google Maps handoff URL.
+
+## Mobile cockpit (Build → Tune → Go)
+
+The phone experience is a **fixed operational cockpit**, not a scrolling page. The layout is a pinned 4-region flex column — map (always visible, 28–32dvh) · status strip · stage body · stage rail + command bar — and the page itself never scrolls (`html, body { overflow: hidden }`). A single directional spine moves the driver through three stages:
+
+- **Build** — Start/End/round-trip/swap/GPS (Trip sub-tab) and the per-stop stepper with reorder, duplicate, and undo-on-remove (Stops sub-tab). The map highlights and pans to the stop being edited.
+- **Tune** — route intent + avoids, seats, date, arrival; the full ride-plan editor (driver note, checklist, repeat, reminder) lives behind a collapsed **More options** accordion so the common case fits with no scroll.
+- **Go** — the complete operational `RouteSummary` (hero ETA, plan stats, driver brief, calendar, pre-drive + drop-off checklists, route options, per-leg timeline) rendered inside one bounded internal scroll. The pinned command bar owns the **Open in Google Maps** handoff.
+
+Where content genuinely overflows (the Go summary, the Tune accordion, an open address dropdown) it scrolls **inside its own bounded region** — the map, status strip, stage rail, and command bar stay pinned. Saved routes (top-left), driver profile, and settings (top-right) float over the map and are reachable from every stage. Desktop (≥768px) reuses the same shared sub-panels in a two-column layout (28rem control panel beside a full-bleed map).
 
 ## OpenRouteService setup
 
@@ -62,11 +74,27 @@ The Google Maps URL is constructed locally as a deep link and uses no Google API
 | Command | Purpose |
 |---|---|
 | `npm run dev` | Local dev at http://localhost:3000 |
+| `npm run dev:local` | Local dev pinned to http://127.0.0.1:3000 |
 | `npm run build` | Production build |
 | `npm run typecheck` | TypeScript check, no emit |
 | `npm run lint` | ESLint |
 | `npm test` | Vitest unit tests (one-shot) |
 | `npm run test:watch` | Vitest watch mode |
+| `npm run auto:expand` | Run one bounded Codex expansion pass for UI + persistence/database work |
+| `npm run auto:expand:install` | Install the local 20-minute cron schedule for `auto:expand` |
+| `npm run auto:expand:uninstall` | Remove the local cron schedule |
+
+## Auto expansion
+
+The repo includes an optional local automation harness under `automation/` and `scripts/`. It runs a bounded Codex pass that looks for one coherent product increment touching both the UI and the persistence layer. Runtime logs and summaries are written under `.automation/`, which is gitignored.
+
+To enable the 20-minute cadence locally:
+
+```bash
+npm run auto:expand:install
+```
+
+The installer modifies your user crontab, so it is explicit and reversible with `npm run auto:expand:uninstall`. In this app, browser `localStorage` is the current database layer; the automation treats it that way unless a real database is deliberately introduced with schema, tests, and docs.
 
 ## Testing
 
@@ -86,7 +114,7 @@ Pure helpers are unit-tested with Vitest. No live network calls — fetch is dep
 | `waypointOps.test.ts` | move-up / move-down / duplicate / remove |
 | `boundaries.test.ts` | Real/mock separation, storage forbidden-field discipline, ORS helpers never import map UI |
 
-Total: **102 tests**.
+Total: **162 tests** (includes `cockpit.test.ts` for the Build → Tune → Go stage flow).
 
 ## Architecture
 
@@ -180,16 +208,18 @@ CI (`.github/workflows/ci.yml`) runs `typecheck → lint → test → build` on 
 
 - **Production tile servers**: the demo uses CARTO Dark Matter (free, but not for high-traffic production). For a public deployment, consider a paid tile provider (Mapbox, MapTiler) or your own raster cache to comply with OSM usage rules.
 - Single driver only — no multi-driver coordination.
-- No Places-style autocomplete (ORS has a `/autocomplete` endpoint that could be wired in v3).
-- Bottom sheet is non-draggable (two states toggled by chevron).
 - Mock optimizer's ordering is a length-based heuristic (only used when no API key is set).
-- No React component-level tests; pure logic only.
+- No React component-level tests; pure logic only (no testing-library installed), so cockpit/stage logic is unit-tested via the pure `lib/cockpit.ts` helpers.
+- On a phone with the on-screen keyboard up, a long address-autocomplete dropdown opens downward into the keyboard-occluded region (reachable via the bounded body scroll, but a portal/open-upward refinement is a future improvement). This is the standard iOS-keyboard-with-fixed-layout limitation.
+- The map is mounted in two breakpoint branches, so crossing 768px (resize / tablet rotation) remounts Leaflet and re-fits the route; uncommon in real single-device use.
 
 ## Future improvements
 
-- ORS autocomplete on address inputs.
+- Address autocomplete — implemented (ORS `/autocomplete` with a Nominatim fallback).
 - Browser geolocation for the start address — implemented via "Use my location" button.
-- Drag-to-reorder waypoints.
+- Portal-anchored / open-upward address dropdown so suggestions clear the mobile keyboard.
+- Mount the map once across breakpoints so crossing 768px doesn't remount Leaflet.
+- Drag-to-reorder waypoints (desktop; buttons used on mobile to avoid keyboard conflicts).
 - Route sharing across devices (would need a backend).
 - Multi-driver assignment.
 - Map controls overlay (recenter, fit-to-route).

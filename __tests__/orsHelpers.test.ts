@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { geocodeAddress } from "../lib/orsGeocode";
 import { extractJobOrder, solveStopOrder } from "../lib/orsOptimize";
-import { extractDirections, fetchDirections } from "../lib/orsDirections";
+import { buildDirectionsOptions, extractDirections, fetchDirections } from "../lib/orsDirections";
 
 function mockResponse<T>(body: T, init?: { status?: number; ok?: boolean }): Response {
   return {
@@ -155,7 +155,62 @@ describe("fetchDirections", () => {
   it("rejects when fewer than 2 coordinates supplied (no network call)", async () => {
     const fakeFetch = vi.fn() as unknown as typeof fetch;
     await expect(
-      fetchDirections([{ lat: 0, lng: 0 }], "KEY", fakeFetch)
+      fetchDirections([{ lat: 0, lng: 0 }], "KEY", undefined, fakeFetch)
     ).rejects.toThrow(/at least 2/);
+  });
+
+  it("maps supported route preferences to ORS avoid_features", () => {
+    expect(
+      buildDirectionsOptions({
+        intent: "balanced",
+        avoidTolls: true,
+        avoidHighways: true,
+        avoidFerries: false,
+        avoidReportedHazards: true,
+      })
+    ).toEqual({
+      avoid_features: ["highways", "tollways"],
+    });
+  });
+
+  it("includes advanced routing options in the directions request body", async () => {
+    const fakeFetch = vi.fn(async () =>
+      mockResponse({
+        features: [
+          {
+            geometry: { coordinates: [[0, 0], [1, 1]] },
+            properties: { summary: { duration: 60, distance: 1000 } },
+          },
+        ],
+      })
+    ) as unknown as typeof fetch;
+
+    await fetchDirections(
+      [
+        { lat: 42.17, lng: -87.85 },
+        { lat: 42.18, lng: -87.84 },
+      ],
+      "KEY",
+      {
+        intent: "fastest",
+        avoidTolls: true,
+        avoidHighways: false,
+        avoidFerries: true,
+        avoidReportedHazards: false,
+      },
+      fakeFetch
+    );
+
+    expect(fakeFetch).toHaveBeenCalledOnce();
+    const [, init] = vi.mocked(fakeFetch).mock.calls[0];
+    expect(JSON.parse(String(init?.body))).toEqual({
+      coordinates: [
+        [-87.85, 42.17],
+        [-87.84, 42.18],
+      ],
+      options: {
+        avoid_features: ["tollways", "ferries"],
+      },
+    });
   });
 });

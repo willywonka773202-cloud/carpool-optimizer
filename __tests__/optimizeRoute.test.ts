@@ -34,13 +34,10 @@ describe("composeOptimization", () => {
     expect(result.distanceMeters).toBe(24000);
     expect(result.polyline).toHaveLength(5);
 
-    expect(directions).toHaveBeenCalledWith([
-      coord(1, 1),
-      coord(5, 5),
-      coord(3, 3),
-      coord(4, 4),
-      coord(2, 2),
-    ]);
+    expect(directions).toHaveBeenCalledWith(
+      [coord(1, 1), coord(5, 5), coord(3, 3), coord(4, 4), coord(2, 2)],
+      undefined
+    );
   });
 
   it("skips optimize() when there is exactly one stop", async () => {
@@ -155,5 +152,40 @@ describe("composeOptimization", () => {
     // start address was NOT geocoded — only end + one stop.
     expect(geocode).toHaveBeenCalledTimes(2);
     expect(geocode).not.toHaveBeenCalledWith("ignored-address");
+  });
+
+  it("passes route preferences through to directions lookup", async () => {
+    const geocode = vi.fn(async () => coord(0, 0));
+    const optimize = vi.fn(async () => [0]);
+    const directions = vi.fn(async () => ({
+      polyline: [] as [number, number][],
+      etaSeconds: 0,
+      distanceMeters: 0,
+    }));
+
+    await composeOptimization(
+      { start: "H", end: "E", stops: ["S1"] },
+      { geocode, optimize, directions },
+      {
+        routePreferences: {
+          intent: "balanced",
+          avoidTolls: true,
+          avoidHighways: false,
+          avoidFerries: true,
+          avoidReportedHazards: true,
+        },
+      }
+    );
+
+    expect(directions).toHaveBeenCalledWith(
+      [coord(0, 0), coord(0, 0), coord(0, 0)],
+      {
+        intent: "balanced",
+        avoidTolls: true,
+        avoidHighways: false,
+        avoidFerries: true,
+        avoidReportedHazards: true,
+      }
+    );
   });
 });

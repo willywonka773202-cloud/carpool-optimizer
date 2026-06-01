@@ -1,6 +1,7 @@
 import type { Coord } from "./orsTypes";
 
 const AUTOCOMPLETE_URL = "/api/ors/geocode/autocomplete";
+const FALLBACK_AUTOCOMPLETE_URL = "/api/address-suggestions";
 
 export type Suggestion = {
   label: string;
@@ -23,16 +24,18 @@ export type AutocompleteFetch = typeof fetch;
  */
 export async function searchAutocomplete(
   text: string,
-  apiKey: string,
+  apiKey: string | null,
   size = 5,
   fetchFn: AutocompleteFetch = fetch,
   signal?: AbortSignal
 ): Promise<Suggestion[]> {
   const trimmed = text.trim();
   if (trimmed.length < 3) return [];
-  const url = `${AUTOCOMPLETE_URL}?api_key=${encodeURIComponent(
-    apiKey
-  )}&text=${encodeURIComponent(trimmed)}&size=${size}`;
+  const url = apiKey
+    ? `${AUTOCOMPLETE_URL}?api_key=${encodeURIComponent(
+        apiKey
+      )}&text=${encodeURIComponent(trimmed)}&size=${size}`
+    : `${FALLBACK_AUTOCOMPLETE_URL}?text=${encodeURIComponent(trimmed)}&size=${size}`;
 
   let res: Response;
   try {

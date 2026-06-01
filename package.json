@@ -4,12 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "next dev -H 127.0.0.1 -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "access:check": "bash scripts/check-codex-access.sh",
+    "auto:expand": "bash scripts/auto-expand.sh",
+    "auto:expand:install": "bash scripts/install-auto-expand-cron.sh",
+    "auto:expand:uninstall": "bash scripts/uninstall-auto-expand-cron.sh"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
@@ -17,21 +22,24 @@
     "next": "^15.1.6",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "react-leaflet": "^5.0.0"
+    "react-leaflet": "^5.0.0",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.12",
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.184.1",
+    "@vitest/coverage-v8": "^2.1.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9",
     "eslint-config-next": "^15.1.6",
+    "jpeg-js": "^0.4.4",
+    "jsdom": "^25.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.0",
-    "@vitest/coverage-v8": "^2.1.0",
-    "jsdom": "^25.0.0"
+    "vitest": "^2.1.0"
   }
 }

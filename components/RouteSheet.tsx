@@ -14,10 +14,8 @@ export function RouteSheet({
   return (
     <section
       className={
-        "fixed inset-x-0 bottom-0 z-[1001] mx-auto max-w-3xl rounded-t-3xl border-t border-white/10 " +
-        "bg-slate-900/85 shadow-sheet backdrop-blur-xl " +
-        "transition-[max-height] duration-300 ease-out-quint " +
-        (expanded ? "max-h-[82vh]" : "max-h-[34vh]")
+        "relative z-[1001] mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border-t border-white/10 " +
+        "bg-slate-900/90 shadow-sheet backdrop-blur-xl transition-[height] duration-300 ease-out-quint"
       }
     >
       <button
@@ -44,7 +42,7 @@ export function RouteSheet({
           />
         )}
       </div>
-      <div className="max-h-[calc(82vh-3.5rem)] overflow-y-auto px-4 pt-1 pb-safe">
+      <div className="min-h-0 flex-1 overflow-hidden px-3 pt-1 pb-safe">
         {children}
       </div>
     </section>

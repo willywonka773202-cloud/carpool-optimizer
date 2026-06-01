@@ -1,4 +1,5 @@
 import type { Coord, RoutePolyline } from "./orsTypes";
+import type { RoutePreferences } from "./types";
 
 export type DirectionsFetch = typeof fetch;
 
@@ -20,6 +21,21 @@ export type DirectionsResult = {
   distanceMeters: number;
   legs?: { etaSeconds: number; distanceMeters: number }[];
 };
+
+type DirectionsOptions = {
+  avoid_features: Array<"highways" | "tollways" | "ferries">;
+};
+
+export function buildDirectionsOptions(
+  preferences?: RoutePreferences
+): DirectionsOptions | undefined {
+  if (!preferences) return undefined;
+  const avoidFeatures: DirectionsOptions["avoid_features"] = [];
+  if (preferences.avoidHighways) avoidFeatures.push("highways");
+  if (preferences.avoidTolls) avoidFeatures.push("tollways");
+  if (preferences.avoidFerries) avoidFeatures.push("ferries");
+  return avoidFeatures.length > 0 ? { avoid_features: avoidFeatures } : undefined;
+}
 
 /**
  * Pure transformation — convert an ORS GeoJSON FeatureCollection into a
@@ -50,13 +66,16 @@ export function extractDirections(response: OrsDirectionsResponse): DirectionsRe
 export async function fetchDirections(
   coordsInOrder: Coord[],
   apiKey: string,
+  preferences?: RoutePreferences,
   fetchFn: DirectionsFetch = fetch
 ): Promise<DirectionsResult> {
   if (coordsInOrder.length < 2) {
     throw new Error("Need at least 2 coordinates to build a route.");
   }
+  const options = buildDirectionsOptions(preferences);
   const body = {
     coordinates: coordsInOrder.map((c) => [c.lng, c.lat]),
+    ...(options ? { options } : {}),
   };
 
   let res: Response;

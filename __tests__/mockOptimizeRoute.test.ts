@@ -20,9 +20,9 @@ describe("mockOptimizeRoute", () => {
     expect(r.polyline).toBeUndefined();
   });
 
-  it("returns positive synthetic eta and distance", () => {
+  it("does not invent eta or distance in demo mode", () => {
     const r = mockOptimizeRoute({ start: "S", end: "E", stops: ["A", "B"] });
-    expect(r.etaSeconds).toBeGreaterThan(0);
-    expect(r.distanceMeters).toBeGreaterThan(0);
+    expect(r.etaSeconds).toBe(0);
+    expect(r.distanceMeters).toBe(0);
   });
 });
