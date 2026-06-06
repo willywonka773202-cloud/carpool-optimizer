@@ -11,12 +11,9 @@ import {
   ZoomControl,
   useMap,
 } from "react-leaflet";
-import { formatDistance, formatEta } from "@/lib/format";
 import type { Coord } from "@/lib/orsTypes";
-import { buildRouteMonitor } from "@/lib/routeMonitor";
 import type { RidePlan, RouteOption } from "@/lib/types";
 import type { DraftMapMarker } from "./MapView";
-import { Route3DOverlay } from "./Route3DOverlay";
 
 const CARTO_DARK_TILES =
   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
@@ -44,49 +41,15 @@ type Props = {
 };
 
 export default function MapViewClient({
-  start,
-  end,
-  stops,
-  riderNames,
-  ridePlan,
   polyline,
   stopCoords,
   draftMarkers = [],
   routeOptions = [],
   selectedRouteIndex = 0,
-  etaSeconds,
-  distanceMeters,
   activeStopIndex,
 }: Props) {
   const selectedOption = routeOptions[selectedRouteIndex];
   const activePolyline = selectedOption?.polyline ?? polyline;
-  const activeEtaSeconds = selectedOption?.etaSeconds ?? etaSeconds;
-  const activeDistanceMeters = selectedOption?.distanceMeters ?? distanceMeters;
-  const monitor = useMemo(
-    () =>
-      buildRouteMonitor({
-        start,
-        end,
-        stops,
-        riderNames,
-        ridePlan,
-        etaSeconds: activeEtaSeconds,
-        distanceMeters: activeDistanceMeters,
-        routeLabel: selectedOption?.label,
-        routeOptionCount: routeOptions.length,
-      }),
-    [
-      activeDistanceMeters,
-      activeEtaSeconds,
-      end,
-      ridePlan,
-      riderNames,
-      routeOptions.length,
-      selectedOption?.label,
-      start,
-      stops,
-    ]
-  );
   const markers = useMemo(
     () => deriveMarkers(activePolyline ?? [], stopCoords ?? [], draftMarkers, activeStopIndex),
     [activePolyline, stopCoords, draftMarkers, activeStopIndex]
@@ -167,76 +130,6 @@ export default function MapViewClient({
           <Marker key={m.key} position={m.position} icon={m.icon} />
         ))}
       </MapContainer>
-
-      <Route3DOverlay
-        activePolyline={activePolyline}
-        stopCoords={stopCoords}
-        routeOptions={routeOptions}
-        selectedRouteIndex={selectedRouteIndex}
-      />
-
-      <div className="pointer-events-none absolute left-3 right-3 top-16 z-[500] hidden md:block md:left-4 md:right-auto md:top-[4.75rem]">
-        <div className="max-w-[22rem] rounded-[1.35rem] border border-cyan-300/20 bg-slate-950/78 p-3 text-slate-100 shadow-[0_24px_65px_rgba(2,6,23,0.48)] backdrop-blur-xl">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
-                Route flight deck
-              </p>
-              <p className="mt-1 truncate text-base font-semibold">{monitor.headline}</p>
-              <p className="mt-1 text-[11px] text-slate-400">{monitor.subheadline}</p>
-            </div>
-            <span
-              className={
-                "shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] ring-1 " +
-                (monitor.status === "ready"
-                  ? "bg-emerald-400/15 text-emerald-100 ring-emerald-300/20"
-                  : monitor.status === "attention"
-                    ? "bg-amber-400/15 text-amber-100 ring-amber-300/20"
-                    : "bg-white/5 text-slate-200 ring-white/10")
-              }
-            >
-              {monitor.badgeLabel}
-            </span>
-          </div>
-
-          <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-300 text-xs font-black text-slate-950">
-                {selectedOption ? selectedRouteIndex + 1 : activeEtaSeconds ? "R" : "D"}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-xs font-bold">{monitor.routeLine}</p>
-                <p className="truncate text-[11px] text-slate-500">
-                  {monitor.arrivalLine} · reminder {monitor.reminderLine}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <FlightDeckMetric label="Seats" value={monitor.seatLine} />
-            <FlightDeckMetric label="Prep" value={monitor.checklistLine} />
-            <FlightDeckMetric label="Riders" value={monitor.riderLine} />
-            <FlightDeckMetric
-              label="Route"
-              value={
-                activeEtaSeconds && activeDistanceMeters
-                  ? `${formatEta(activeEtaSeconds)} · ${formatDistance(activeDistanceMeters)}`
-                  : "Waiting for plan"
-              }
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FlightDeckMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-slate-900/45 px-3 py-2">
-      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <p className="mt-1 truncate text-[11px] font-semibold text-slate-100">{value}</p>
     </div>
   );
 }

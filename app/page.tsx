@@ -24,19 +24,13 @@ import { TuneControls } from "@/components/stages/TuneControls";
 import { ConsoleShell } from "@/components/mobile/ConsoleShell";
 import { StatusStrip } from "@/components/mobile/StatusStrip";
 import { CommandBar } from "@/components/mobile/CommandBar";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/Toast";
 import { validateRouteInputs } from "@/lib/validation";
 import { optimizeRoute } from "@/lib/optimizeRoute";
-import { mockOptimizeRoute } from "@/lib/mockOptimizeRoute";
+import { localOptimizeRoute } from "@/lib/localOptimize";
 import { getActiveApiKey } from "@/lib/orsKey";
 import { DEFAULT_RIDE_PLAN, normalizeRidePlan } from "@/lib/ridePlan";
-import {
-  EMPTY_SAVED_ROUTE_PROGRESS,
-  normalizeSavedRouteProgress,
-  resetSavedRouteProgress,
-} from "@/lib/routeProgress";
 import { saveRoute, updateRoute } from "@/lib/storage";
 import {
   duplicateItem,
@@ -52,12 +46,11 @@ import type {
   RouteOption,
   RouteInputs,
   SavedRoute,
-  SavedRouteProgress,
 } from "@/lib/types";
 import { fetchRouteOptions } from "@/lib/routeOptions";
 import { getProfile, type SavedRiderGroup } from "@/lib/profileStorage";
 import { collectStopAssignments, matchAssignmentsInOrder } from "@/lib/stopAssignments";
-import { buildOptimizedHandoffUrl } from "@/lib/handoffUrl";
+import { buildNavUrl, navAppLabel, type NavApp } from "@/lib/navLinks";
 
 type Phase =
   | { kind: "editing"; error?: string }
@@ -169,11 +162,10 @@ export default function Page() {
   const [phase, dispatch] = useReducer(phaseReducer, { kind: "editing" });
   const [stage, setStage] = useState<Stage>("build");
   const [buildSub, setBuildSub] = useState<BuildSub>("trip");
-  const [tuneExpanded, setTuneExpanded] = useState(false);
   const [activeStopIndex, setActiveStopIndex] = useState(0);
   const [isDesktop, setIsDesktop] = useState(false);
   const [activeSavedRouteId, setActiveSavedRouteId] = useState<string | null>(null);
-  const [savedProgress, setSavedProgress] = useState<SavedRouteProgress>(EMPTY_SAVED_ROUTE_PROGRESS);
+  const [navApp, setNavApp] = useState<NavApp>("google");
 
   const toast = useToast();
 
@@ -181,6 +173,24 @@ export default function Page() {
     setApiKey(getActiveApiKey());
   }
   useEffect(refreshApiKey, []);
+
+  // Remember the driver's preferred navigation app.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("carpool.navApp");
+      if (saved === "google" || saved === "waze" || saved === "apple") setNavApp(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  function chooseNavApp(app: NavApp) {
+    setNavApp(app);
+    try {
+      window.localStorage.setItem("carpool.navApp", app);
+    } catch {
+      /* ignore */
+    }
+  }
 
   useEffect(() => {
     const profileDefaults = getProfile().tripDefaults;
@@ -438,13 +448,45 @@ export default function Page() {
     dispatch({ type: "optimize_start" });
     try {
       const cleanInputs: RouteInputs = { start, end, stops: v.cleanedWaypoints };
-      const result: OptimizedRoute = useMock
-        ? mockOptimizeRoute(cleanInputs)
-        : await optimizeRoute(cleanInputs, apiKey ?? "", {
-            startCoord: startCoord ?? undefined,
-            routePreferences,
-          });
-      const routeOptions = await getDraftRouteOptions(result.orderedStops);
+
+      let result: OptimizedRoute;
+      let routeOptions: RouteOption[];
+      if (useMock) {
+        // Free, keyless optimization: reuse coords already resolved from autocomplete,
+        // geocode the rest, then nearest-neighbor order. Real reordering, no API key.
+        const assignments = collectStopAssignments(
+          waypoints,
+          ensureRidersAlignment(waypoints, riderNames),
+          ensureCoordAlignment(waypoints, waypointCoords)
+        );
+        const knownStopCoords = matchAssignmentsInOrder(cleanInputs.stops, assignments).map(
+          (assignment) => assignment.coord
+        );
+        const local = await localOptimizeRoute(cleanInputs, {
+          startCoord,
+          endCoord,
+          stopCoords: knownStopCoords,
+        });
+        result = local.route;
+        routeOptions =
+          local.startCoord &&
+          local.endCoord &&
+          result.stopCoords &&
+          result.stopCoords.length === result.orderedStops.length
+            ? await fetchRouteOptions({
+                start: local.startCoord,
+                end: local.endCoord,
+                stops: result.stopCoords,
+              })
+            : [];
+      } else {
+        result = await optimizeRoute(cleanInputs, apiKey ?? "", {
+          startCoord: startCoord ?? undefined,
+          routePreferences,
+        });
+        routeOptions = await getDraftRouteOptions(result.orderedStops);
+      }
+
       const preferredIndex = pickPreferredRouteIndex(routeOptions, routePreferences);
       const preferredOption = routeOptions[preferredIndex];
       const resultWithOptions: OptimizedRoute = preferredOption
@@ -462,13 +504,7 @@ export default function Page() {
         : result;
       dispatch({ type: "optimize_success", result: resultWithOptions });
       setStage("go");
-      toast.show({
-        title:
-          resultWithOptions.source === "ors"
-            ? "Route ready"
-            : "Demo route ready",
-        tone: "success",
-      });
+      toast.show({ title: "Route ready", tone: "success" });
     } catch (err) {
       const message =
         err instanceof Error
@@ -500,7 +536,6 @@ export default function Page() {
       etaSeconds: undefined,
       distanceMeters: undefined,
       source: undefined,
-      progress: normalizeSavedRouteProgress(savedProgress, cleanedStops, ridePlan.checklist),
     };
 
     if (!payload.start || !payload.end || payload.stops.length === 0) {
@@ -552,7 +587,6 @@ export default function Page() {
         etaSeconds: result.etaSeconds,
         distanceMeters: result.distanceMeters,
         source: result.source,
-        progress: normalizeSavedRouteProgress(savedProgress, stops, ridePlan.checklist),
       };
       if (activeSavedRouteId) {
         updateRoute(activeSavedRouteId, payload);
@@ -586,13 +620,6 @@ export default function Page() {
     setEndSameAsStart(false);
     setRidePlan(normalizeRidePlan(r.ridePlan));
     setRoutePreferences(r.routePreferences ?? DEFAULT_ROUTE_PREFERENCES);
-    setSavedProgress(
-      normalizeSavedRouteProgress(
-        r.progress,
-        stops,
-        normalizeRidePlan(r.ridePlan).checklist
-      )
-    );
     // Fast repeat: a previously-optimized route lands in TUNE (one tap from re-planning);
     // a bare draft lands in BUILD.
     setStage(nextStageForLoadedRoute(r));
@@ -600,26 +627,6 @@ export default function Page() {
     setActiveStopIndex(0);
     dispatch({ type: "reset" });
     toast.show({ title: `Loaded ${r.label}`, tone: "info" });
-  }
-
-  function handleProgressChange(next: SavedRouteProgress) {
-    const normalized = normalizeSavedRouteProgress(
-      next,
-      optimized?.orderedStops ?? waypoints.filter((stop) => stop.trim().length > 0),
-      ridePlan.checklist
-    );
-    setSavedProgress(normalized);
-    if (!activeSavedRouteId) return;
-    try {
-      updateRoute(activeSavedRouteId, { progress: normalized });
-    } catch {
-      toast.show({ title: "Couldn't update route progress", tone: "error" });
-    }
-  }
-
-  function handleResetProgress() {
-    handleProgressChange(resetSavedRouteProgress());
-    toast.show({ title: "Trip progress reset", tone: "info" });
   }
 
   function handleReset() {
@@ -637,11 +644,9 @@ export default function Page() {
     setEndSameAsStart(false);
     setRidePlan(nextDefaults.ridePlan);
     setRoutePreferences(nextDefaults.routePreferences);
-    setSavedProgress(EMPTY_SAVED_ROUTE_PROGRESS);
     setStage("build");
     setBuildSub("trip");
     setActiveStopIndex(0);
-    setTuneExpanded(false);
     dispatch({ type: "reset" });
     toast.show({
       title: profileDefaults ? "Cleared route and restored defaults" : "Cleared route",
@@ -663,19 +668,21 @@ export default function Page() {
 
   async function handleCopyLink() {
     if (phase.kind !== "optimized") return;
-    const url = buildOptimizedHandoffUrl(start, end, phase.result);
+    const url = buildNavUrl(navApp, { start, end, orderedStops: phase.result.orderedStops });
     try {
       if (!navigator?.clipboard?.writeText) throw new Error("Clipboard API unavailable");
       await navigator.clipboard.writeText(url);
-      toast.show({ title: "Route link copied", tone: "success" });
+      toast.show({ title: "Link copied", tone: "success" });
     } catch {
       window.prompt("Copy route link", url);
     }
   }
 
-  function openMobileMaps() {
+  function openNav() {
     if (phase.kind !== "optimized") return;
-    window.location.assign(buildOptimizedHandoffUrl(start, end, phase.result));
+    window.location.assign(
+      buildNavUrl(navApp, { start, end, orderedStops: phase.result.orderedStops })
+    );
   }
 
   const optimized = phase.kind === "optimized" ? phase.result : null;
@@ -688,15 +695,6 @@ export default function Page() {
   const mobileStopIndex = Math.min(activeStopIndex, Math.max(waypoints.length - 1, 0));
   const canOptimize = canOptimizeInputs({ start, end, stops: waypoints });
   const selectedRouteIndex = optimized?.selectedRouteIndex ?? 0;
-
-  const modeBadge =
-    mode === "live" ? (
-      <Badge tone="live">Live</Badge>
-    ) : mode === "demo" ? (
-      <Badge tone="demo">Demo</Badge>
-    ) : (
-      <Badge tone="error">Map error</Badge>
-    );
 
   const summaryProps = optimized
     ? {
@@ -713,9 +711,10 @@ export default function Page() {
         onSave: handleSave,
         saveLabel: activeSavedRouteId ? "Update saved plan" : "Save plan",
         onSelectRoute: (index: number) => dispatch({ type: "select_route", index }),
-        progress: normalizeSavedRouteProgress(savedProgress, optimized.orderedStops, ridePlan.checklist),
-        onProgressChange: handleProgressChange,
-        onResetProgress: handleResetProgress,
+        navApp,
+        onNavAppChange: chooseNavApp,
+        onOpenNav: openNav,
+        onCopyLink: handleCopyLink,
       }
     : null;
 
@@ -749,10 +748,6 @@ export default function Page() {
       setRidePlan(next);
       dispatch({ type: "edit_changed" });
     },
-    start,
-    end,
-    stops: waypoints,
-    riderNames,
     disabled: loading,
   };
 
@@ -864,12 +859,7 @@ export default function Page() {
       );
   } else if (stage === "tune") {
     stageBody = (
-      <TuneControls
-        compact
-        expanded={tuneExpanded}
-        onToggleExpanded={() => setTuneExpanded((e) => !e)}
-        {...tuneProps}
-      />
+      <TuneControls compact {...tuneProps} />
     );
   } else {
     stageBody = summaryProps ? (
@@ -894,7 +884,6 @@ export default function Page() {
         <SavedRoutesMenu onLoad={handleLoad} />
       </div>
       <div className="pointer-events-auto absolute right-3 top-3 flex items-center gap-2">
-        {modeBadge}
         <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-slate-900/85 px-1.5 py-1 shadow-lg backdrop-blur">
           <ProfileMenu
             start={start}
@@ -924,7 +913,6 @@ export default function Page() {
                 <p className="truncate text-[11px] text-slate-400">Plan · optimize · drive</p>
               </div>
               <div className="flex items-center gap-2">
-                {modeBadge}
                 <ProfileMenu
                   start={start}
                   stops={waypoints}
@@ -1003,10 +991,11 @@ export default function Page() {
                       ? "Update draft"
                       : "Save draft"
                 }
+                navApp={navApp}
                 onOptimize={handleOptimize}
                 onSave={stage === "go" ? handleSave : handleSaveDraft}
                 onClear={handleReset}
-                onOpenMaps={openMobileMaps}
+                onOpenNav={openNav}
                 onCopyLink={handleCopyLink}
                 onEdit={() => {
                   setStage("build");

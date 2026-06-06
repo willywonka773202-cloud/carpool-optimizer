@@ -27,15 +27,15 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 On macOS you can also double-click [`/Users/willlambert/Documents/Carpool/Open Carpool.command`](/Users/willlambert/Documents/Carpool/Open%20Carpool.command). It installs dependencies if needed, starts the local dev server, and opens the app in your browser.
 
-If no API key is present, the app runs in **demo mode** with a deterministic placeholder optimizer. Every other feature works — including the Google Maps handoff URL.
+**Optimization works with no API key.** When no OpenRouteService key is present, the app still optimizes the real drop-off order for free: it geocodes the addresses via OpenStreetMap (Nominatim) and orders the stops with a nearest-neighbor solver, then draws the route line via the free OSRM service. An OpenRouteService key is an optional upgrade to road-distance ordering plus in-app ETAs. Either way, you hand off to a real navigation app (Google Maps, Waze, or Apple Maps) for turn-by-turn directions.
 
 ## Mobile cockpit (Build → Tune → Go)
 
 The phone experience is a **fixed operational cockpit**, not a scrolling page. The layout is a pinned 4-region flex column — map (always visible, 28–32dvh) · status strip · stage body · stage rail + command bar — and the page itself never scrolls (`html, body { overflow: hidden }`). A single directional spine moves the driver through three stages:
 
 - **Build** — Start/End/round-trip/swap/GPS (Trip sub-tab) and the per-stop stepper with reorder, duplicate, and undo-on-remove (Stops sub-tab). The map highlights and pans to the stop being edited.
-- **Tune** — route intent + avoids, seats, date, arrival; the full ride-plan editor (driver note, checklist, repeat, reminder) lives behind a collapsed **More options** accordion so the common case fits with no scroll.
-- **Go** — the complete operational `RouteSummary` (hero ETA, plan stats, driver brief, calendar, pre-drive + drop-off checklists, route options, per-leg timeline) rendered inside one bounded internal scroll. The pinned command bar owns the **Open in Google Maps** handoff.
+- **Tune** — driver, seats, date, arrival, and route style (which picks among the alternate route lines). Intentionally minimal: no checklists, reminders, or avoidances.
+- **Go** — a lean drive summary (hero ETA/distance, driver + seats, the ordered drop-off list, and route options) inside one short bounded scroll. A navigation-app picker (**Google Maps / Waze / Apple Maps**) chooses which app the pinned **Open in …** handoff launches; the choice is remembered.
 
 Where content genuinely overflows (the Go summary, the Tune accordion, an open address dropdown) it scrolls **inside its own bounded region** — the map, status strip, stage rail, and command bar stay pinned. Saved routes (top-left), driver profile, and settings (top-right) float over the map and are reachable from every stage. Desktop (≥768px) reuses the same shared sub-panels in a two-column layout (28rem control panel beside a full-bleed map).
 

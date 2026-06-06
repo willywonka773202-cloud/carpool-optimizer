@@ -2,6 +2,7 @@
 
 import { Copy, Navigation, Pencil, RotateCcw, Save, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { navAppLabel, type NavApp } from "@/lib/navLinks";
 
 /**
  * Region 4 of the mobile cockpit: a single pinned action row whose contents depend on the
@@ -13,10 +14,11 @@ export function CommandBar({
   loading,
   canOptimize,
   saveLabel,
+  navApp,
   onOptimize,
   onSave,
   onClear,
-  onOpenMaps,
+  onOpenNav,
   onCopyLink,
   onEdit,
 }: {
@@ -24,19 +26,20 @@ export function CommandBar({
   loading: boolean;
   canOptimize: boolean;
   saveLabel: string;
+  navApp: NavApp;
   onOptimize: () => void;
   onSave: () => void;
   onClear: () => void;
-  onOpenMaps: () => void;
+  onOpenNav: () => void;
   onCopyLink: () => void;
   onEdit: () => void;
 }) {
   if (mode === "go") {
     return (
       <div className="flex items-center gap-2">
-        <Button variant="success" size="md" fullWidth onClick={onOpenMaps} className="flex-1">
+        <Button variant="success" size="md" fullWidth onClick={onOpenNav} className="flex-1">
           <Navigation className="h-4 w-4" aria-hidden="true" />
-          Open in Google Maps
+          Open in {navAppLabel(navApp)}
         </Button>
         <IconAction label="Copy route link" onClick={onCopyLink}>
           <Copy className="h-4 w-4" aria-hidden="true" />
