@@ -18,6 +18,7 @@ import {
   type Stage,
 } from "@/lib/cockpit";
 import { EmptyState } from "@/components/EmptyState";
+import { DriveMode } from "@/components/DriveMode";
 import { TripFields } from "@/components/stages/TripFields";
 import { StopsEditor } from "@/components/stages/StopsEditor";
 import { TuneControls } from "@/components/stages/TuneControls";
@@ -166,6 +167,7 @@ export default function Page() {
   const [isDesktop, setIsDesktop] = useState(false);
   const [activeSavedRouteId, setActiveSavedRouteId] = useState<string | null>(null);
   const [navApp, setNavApp] = useState<NavApp>("google");
+  const [driveOpen, setDriveOpen] = useState(false);
 
   const toast = useToast();
 
@@ -715,8 +717,27 @@ export default function Page() {
         onNavAppChange: chooseNavApp,
         onOpenNav: openNav,
         onCopyLink: handleCopyLink,
+        onStartDrive: () => setDriveOpen(true),
       }
     : null;
+
+  // Ordered drop-offs (rider + address + coord) for Drive mode's live proximity tracking.
+  let driveStops: { rider: string | null; address: string; coord: Coord | null }[] = [];
+  if (optimized) {
+    const assignments = collectStopAssignments(
+      waypoints,
+      ensureRidersAlignment(waypoints, riderNames),
+      ensureCoordAlignment(waypoints, waypointCoords)
+    );
+    const orderedRiders = matchAssignmentsInOrder(optimized.orderedStops, assignments).map(
+      (a) => a.riderName
+    );
+    driveStops = optimized.orderedStops.map((address, i) => ({
+      rider: orderedRiders[i] ?? null,
+      address,
+      coord: optimized.stopCoords?.[i] ?? null,
+    }));
+  }
 
   const tripFieldProps = {
     start,
@@ -902,6 +923,7 @@ export default function Page() {
   );
 
   return (
+    <>
     <main className="h-[100dvh] overflow-hidden md:grid md:grid-cols-[28rem_1fr]">
       {/* Desktop side panel (md+) */}
       <aside className="relative hidden h-full min-h-0 flex-col border-r border-white/10 bg-slate-900/80 backdrop-blur-xl md:flex">
@@ -1007,6 +1029,10 @@ export default function Page() {
         )}
       </div>
     </main>
+      {driveOpen && optimized && (
+        <DriveMode stops={driveStops} end={end} onClose={() => setDriveOpen(false)} />
+      )}
+    </>
   );
 }
 
