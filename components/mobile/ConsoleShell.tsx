@@ -45,6 +45,7 @@ export function ConsoleShell({
         style={{ height: `${mapDvh}dvh` }}
       >
         {map}
+        <div className="map-vignette pointer-events-none absolute inset-0 z-[5]" />
       </div>
 
       {/* Region 2 — status strip */}
@@ -58,10 +59,12 @@ export function ConsoleShell({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{body}</div>
       </div>
 
-      {/* Region 4 — stage rail + command bar, pinned at the bottom */}
-      <div className="shrink-0 space-y-2 px-2.5 pb-safe pt-2">
-        {rail}
-        {commandBar}
+      {/* Region 4 — stage rail + command bar, a pinned glass dock */}
+      <div className="shrink-0 px-2.5 pb-safe pt-2">
+        <div className="glass space-y-2 rounded-2xl p-2">
+          {rail}
+          {commandBar}
+        </div>
       </div>
 
       {/* Floating controls layered above all regions so dropdowns aren't clipped by the map. */}

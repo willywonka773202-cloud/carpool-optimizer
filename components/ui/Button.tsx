@@ -5,7 +5,7 @@ type Size = "sm" | "md" | "lg";
 
 const base =
   "inline-flex items-center justify-center gap-2 font-semibold rounded-xl " +
-  "transition-colors duration-150 ease-out " +
+  "transition duration-150 ease-out active:scale-[0.97] " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 " +
   "focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 " +
   "disabled:opacity-50 disabled:cursor-not-allowed select-none";

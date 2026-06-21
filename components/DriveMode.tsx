@@ -133,7 +133,7 @@ export function DriveMode({
             <a
               href={smsLink(message)}
               className={
-                "flex h-14 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 text-center text-base font-bold text-white shadow-lg " +
+                "flex h-14 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-700 px-4 text-center text-base font-bold text-white shadow-lg shadow-blue-950/40 " +
                 (closeEnough ? "animate-pulse ring-2 ring-cyan-300/50" : "")
               }
             >

@@ -905,7 +905,7 @@ export default function Page() {
         <SavedRoutesMenu onLoad={handleLoad} />
       </div>
       <div className="pointer-events-auto absolute right-3 top-3 flex items-center gap-2">
-        <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-slate-900/85 px-1.5 py-1 shadow-lg backdrop-blur">
+        <div className="glass flex items-center gap-1 rounded-xl px-1.5 py-1">
           <ProfileMenu
             start={start}
             stops={waypoints}
@@ -997,7 +997,11 @@ export default function Page() {
               />
             }
             subNav={stage === "build" ? buildSubNav : undefined}
-            body={stageBody}
+            body={
+              <div key={`${stage}-${buildSub}`} className="h-full min-h-0 animate-stage">
+                {stageBody}
+              </div>
+            }
             rail={<StageRail stage={stage} goUnlocked={goUnlocked} onJump={handleStageJump} />}
             commandBar={
               <CommandBar

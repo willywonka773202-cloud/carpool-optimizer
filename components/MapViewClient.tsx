@@ -104,7 +104,7 @@ export default function MapViewClient({
                 color: "#22d3ee",
                 weight: 11,
                 opacity: 0.2,
-                className: "carpool-route-glow",
+                className: "carpool-route-glow animate-route-in",
               }}
             />
             <Polyline
@@ -159,7 +159,7 @@ function FitBounds({ positions }: { positions: [number, number][] }) {
   useEffect(() => {
     if (positions.length < 2) return;
     const bounds = L.latLngBounds(positions.map(([lat, lng]) => L.latLng(lat, lng)));
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    map.fitBounds(bounds, { padding: [44, 44], maxZoom: 14, animate: true, duration: 0.85 });
   }, [map, positions]);
   return null;
 }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export const metadata: Metadata = {
   title: "Carpool Optimizer",
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-[100dvh]">
         <ToastProvider>{children}</ToastProvider>
+        <LoadingScreen />
       </body>
     </html>
   );

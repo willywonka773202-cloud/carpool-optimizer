@@ -109,7 +109,7 @@ export function RouteSummary({
         <button
           type="button"
           onClick={onStartDrive}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:from-cyan-400 hover:to-blue-500 animate-rise"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-950/40 transition hover:from-cyan-500 hover:to-blue-600 animate-rise"
           style={{ animationDelay: "30ms" }}
         >
           <Navigation className="h-4 w-4" aria-hidden="true" />

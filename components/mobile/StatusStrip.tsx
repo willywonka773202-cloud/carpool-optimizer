@@ -49,7 +49,7 @@ export function StatusStrip({
         : "bg-slate-500";
 
   return (
-    <div className="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-slate-950/45 px-3">
+    <div className="glass flex h-10 items-center gap-2 rounded-xl px-3">
       <span className={"h-2 w-2 shrink-0 rounded-full " + dotClass} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-bold leading-4 text-slate-100">{monitor.headline}</p>
